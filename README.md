@@ -1,6 +1,6 @@
-# BHuman Video Generation API
+# BHuman Video Generation API Guide
 
-Welcome to BHuman's Video Generation API, a powerful tool that allows you to generate customized videos using AI. With our API, you can easily integrate video generation capabilities into your applications and create stunning, personalized content for your users. In this README, we'll provide you with step-by-step instructions on how to use our API.
+Welcome to BHuman's Video Generation API Guide, a powerful tool that allows you to generate customized videos using AI. With our API, you can easily integrate video generation capabilities into your applications and create stunning, personalized content for your users. In this README, we'll provide you with step-by-step instructions on how to use our API.
 
 ## Table of Contents
 
