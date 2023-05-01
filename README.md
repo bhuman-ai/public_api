@@ -72,7 +72,7 @@ Here's a list of available API endpoints:
 5. [Get workspace](#get-workspace)
 6. [Get products from store](#get-products-from-store)
 7. [Use product](#use-product)
-8. [Get categories and tags](#get-categories-tags)
+8. [Get categories and tags](#get-categories-and-tags)
 
 ### Get video instances by user
 
