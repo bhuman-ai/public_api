@@ -304,7 +304,7 @@ If `folder_id` and `video_instance_id` are empty, it will create a new folder an
 
 If `video_instance_id` is present, `folder_id` can not be empty.
 
-If `folder_id` is present and `video_instance_id` is empty, if will create a new video instance.
+If `folder_id` is present and `video_instance_id` is empty, it will create a new video instance.
 
 **Reponse:** 
 
