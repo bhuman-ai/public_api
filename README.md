@@ -76,29 +76,39 @@ Here's a list of available API endpoints:
 
 ### Get video instances by user
 
-**Endpoint:** `https://studio.bhuman.ai/api/ai_studio/video_instance`
+**Endpoint:** `https://studio.bhuman.ai/api/ai_studio/video_instances`
 
 **Method:** `GET`
 
-**Description:** Retrieves video instances associated with the authenticated user.
-
-**Reponse:** Video Instance list
+**Parameters:**
 
 ```
-[
-  {
-    id: Uuid,
-    name: String,
-    user_id: String,
-    folder_id: Uuid,
-    actor_id: Uuid - Nullable,
-    product_id: Uuid - Nullable,
-    industry: Int,
-    use_case: String - Nullable,
-    created_at: Date,
-    updated_at: Date
-  }
-]
+page: Integer - Required (start from 0)
+size: Integer - Required (max size is 100)
+```
+
+**Description:** Retrieves video instances associated with the authenticated user.
+
+**Reponse:** Video Instance list and total count
+
+```
+{
+  total: Int,
+  instances: [
+    {
+      id: Uuid,
+      name: String,
+      user_id: String,
+      folder_id: Uuid,
+      actor_id: Uuid - Nullable,
+      product_id: Uuid - Nullable,
+      industry: Int,
+      use_case: String - Nullable,
+      created_at: Date,
+      updated_at: Date
+    }
+  ]
+}
 ```
 
 ### Get video instance by instance ID
@@ -110,12 +120,10 @@ Here's a list of available API endpoints:
 **Parameters:** 
 
 ```
-id: Uuid - Optional  
+id: Uuid - Required  
 ```
 
 **Description:** Retrieves a specific video instance based on the provided instance ID.
-
-If `id` is empty, it will get same results with [Get video instances by user](#get-video-instances-by-user)
 
 **Reponse:** Video Instance list
 
@@ -380,7 +388,7 @@ api_key_encoded = base64.b64encode(api_key_combined.encode()).decode()
 headers = {"Authorization": f"Basic {api_key_encoded}"}
 
 # Get video instances by user
-url = "https://studio.bhuman.ai/api/ai_studio/video_instance"
+url = "https://studio.bhuman.ai/api/ai_studio/video_instances?page=0&size=100"
 response = requests.get(url, headers=headers)
 print(response.json())
 
