@@ -69,10 +69,11 @@ Here's a list of available API endpoints:
 2. [Get video instance by instance ID](#get-video-instance-by-instance-id)
 3. [Generate video by instance ID](#generate-video-by-instance-id)
 4. [Get generated videos by instance ID](#get-generated-videos-by-instance-id)
-5. [Get workspace](#get-workspace)
-6. [Get products from store](#get-products-from-store)
-7. [Use product](#use-product)
-8. [Get categories and tags](#get-categories-and-tags)
+5. [Get generated video by generate ID](#get-generated-video-by-generate-id)
+6. [Get workspace](#get-workspace)
+7. [Get products from store](#get-products-from-store)
+8. [Use product](#use-product)
+9. [Get categories and tags](#get-categories-and-tags)
 
 ### Get video instances by user
 
@@ -185,7 +186,6 @@ thumbnail": String,       <- thumbnail url = https://tmp-prod-492171.s3.us-east-
 url": String,             <- downloadable url = https://tmp-prod-492171.s3.us-east-2.amazonaws.com/pipeline-out/0515c90c-44ae-4755-96c7-843040c3a86f.mp4
 ```
 
-
 ### Get generated videos by instance ID
 
 **Endpoint:** `https://studio.bhuman.ai/api/ai_studio/generated_video_by_video_instance_id`
@@ -227,6 +227,43 @@ If `page` and `size` are empty, it will return the first 100 generation results.
       updated_at: Date,
   }
 ]
+```
+
+### Get generated video by generate ID
+
+**Endpoint:** `https://studio.bhuman.ai/api/ai_studio/generated_video_by_id`
+
+**Method:** `GET`
+
+**Parameters:**
+
+```
+id: Uuid - Required
+```
+
+**Description:** Retrieves generated video associated with the provided generate ID that returned by `try_sample`.
+
+**Response:** Generated Video
+
+```
+{
+      user_id: String,
+      video_id: Uuid,
+      actor_id: Uuid,
+      video_instance_id: Uuid - Nullable,
+      campaign_id: Uuid - Nullable,
+      url: String - Nullable,
+      vimeo_url: String - Nullable,
+      thumbnail: String - Nullable,
+      status: String,
+      checksum: Int,
+      execution_name: String - Nullable, (If video generation failed, you can report using this execution id.)
+      row_index: Int - Nullable, (It's the same number as names value sequence that you request in the Generate Video API.)
+      text: String[] - Nullable, (["Don", "Apple"])
+      message: String - Nullable, 
+      created_at: Date,
+      updated_at: Date,
+}
 ```
 
 ### Get workspace
