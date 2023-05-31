@@ -77,16 +77,14 @@ Here's a list of available API endpoints:
 
 ### Get video instances by user
 
-**Endpoint:** `https://studio.bhuman.ai/api/ai_studio/video_instances`
-
-**Method:** `GET`
-
-**Parameters:**
-
 ```
-page: Integer - Required (start from 0)
-size: Integer - Required (max size is 100)
+  GET https://studio.bhuman.ai/api/ai_studio/video_instances
 ```
+
+| Parameter | Type     | Description                |
+| :-------- | :------- | :------------------------- |
+| `page` | `int` | **Required** start from 0 |
+| `size` | `int` | **Required** max 100 |
 
 **Description:** Retrieves video instances associated with the authenticated user.
 
@@ -94,7 +92,7 @@ size: Integer - Required (max size is 100)
 
 ```
 {
-  total: Int,
+  total: int,
   instances: [
     {
       id: Uuid,
@@ -103,10 +101,10 @@ size: Integer - Required (max size is 100)
       folder_id: Uuid,
       actor_id: Uuid - Nullable,
       product_id: Uuid - Nullable,
-      industry: Int,
+      industry: int,
       use_case: String - Nullable,
-      created_at: Date,
-      updated_at: Date
+      created_at: Datetime,
+      updated_at: Datetime
     }
   ]
 }
@@ -114,15 +112,13 @@ size: Integer - Required (max size is 100)
 
 ### Get video instance by instance ID
 
-**Endpoint:** `https://studio.bhuman.ai/api/ai_studio/video_instance`
-
-**Method:** `GET`
-
-**Parameters:** 
-
 ```
-id: Uuid - Required  
+  GET https://studio.bhuman.ai/api/ai_studio/video_instance
 ```
+
+| Parameter | Type     | Description                |
+| :-------- | :------- | :------------------------- |
+| `id` | `Uuid` | **Required** video instance id |
 
 **Description:** Retrieves a specific video instance based on the provided instance ID.
 
@@ -137,32 +133,30 @@ id: Uuid - Required
     folder_id: Uuid,
     actor_id: Uuid - Nullable,
     product_id: Uuid - Nullable,
-    industry: Int,
+    industry: int,
     use_case: String - Nullable,
-    created_at: Date,
-    updated_at: Date
+    created_at: Datetime,
+    updated_at: Datetime
   }
 ]
 ```
 
 ### Generate video by instance ID
 
-**Endpoint:** `https://studio.bhuman.ai/api/ai_studio/try_sample`
-
-**Method:** `POST`
-
-**Parameters:** 
-
 ```
-callback_url: String - Optional,
-names: String[][] - Required,
-variables: String[] - Required,
-video_instance_id: Uuid - Required
+  POST https://studio.bhuman.ai/api/ai_studio/try_sample
 ```
+
+| Parameter | Type     | Description                |
+| :-------- | :------- | :------------------------- |
+| `names` | `String[][]` | **Required** names array |
+| `variables` | `String[]` | **Required** variable array |
+| `video_instance_id` | `Uuid` | **Required** video instance id |
+| `callback_url` | `String` | **Optional** if callback url present, platform will return generated videos via callback url |
 
 **Description:** Generates a video using the provided instance ID.
 
-If `callback_url` is empty, you may get the generation results using [Get generated videos by instance ID](#get-generated-videos-by-instance-id)
+If `callback_url` is empty, you may get the generated videos using [Get generated videos by instance ID](#get-generated-videos-by-instance-id)
 
 **Reponse:** Video generation id list, this will return as soon as called API
 
@@ -178,27 +172,26 @@ After finishing video generation, it will return the results via `callback_url` 
 
 (1 callback per 1 generation)
 
-```
-id": Uuid,                <- generation id = c10ee155-6202-4cec-9a40-dde536e2ab4e
-status": String,          <- generation status = 'succeeded', 'failed'
-video_url": String,       <- vimeo url = https://vimeo.com/822632664/8cbe80ad5f
-thumbnail": String,       <- thumbnail url = https://tmp-prod-492171.s3.us-east-2.amazonaws.com/pipeline-out/dc44f89e-cc94-48a0-8261-8013081eba0c.png
-url": String,             <- downloadable url = https://tmp-prod-492171.s3.us-east-2.amazonaws.com/pipeline-out/0515c90c-44ae-4755-96c7-843040c3a86f.mp4
-```
+| Parameter | Type     | Description                |
+| :-------- | :------- | :------------------------- |
+| `id` | `Uuid` | generation id `c10ee155-6202-4cec-9a40-dde536e2ab4e` |
+| `status` | `String` | generation status `succeeded` or `failed`, `processing` |
+| `video_url` | `String` | vimeo url `https://vimeo.com/822632664/8cbe80ad5f` |
+| `thumbnail` | `String` | thumbnail url `https://tmp-prod-492171.s3.us-east-2.amazonaws.com/pipeline-out/dc44f89e-cc94-48a0-8261-8013081eba0c.png` |
+| `url` | `String` | downloadable url `https://tmp-prod-492171.s3.us-east-2.amazonaws.com/pipeline-out/0515c90c-44ae-4755-96c7-843040c3a86f.mp4` |
+| `gif` | `String` | downloadable url `https://tmp-prod-492171.s3.us-east-2.amazonaws.com/pipeline-out/74dddb8c-0894-44bf-935b-9ab5b4056f59.gif` |
 
 ### Get generated videos by instance ID
 
-**Endpoint:** `https://studio.bhuman.ai/api/ai_studio/generated_video_by_video_instance_id`
-
-**Method:** `GET`
-
-**Parameters:**
-
 ```
-video_instance_id: Uuid - Required
-page: Integer - Optional (start from 0)
-size: Integer - Optional (default size is 100)
+  GET https://studio.bhuman.ai/api/ai_studio/generated_video_by_video_instance_id
 ```
+
+| Parameter | Type     | Description                |
+| :-------- | :------- | :------------------------- |
+| `video_instance_id` | `Uuid` | **Required** video instance id |
+| `page` | `int` | **Optional** start from 0 |
+| `size` | `int` | **Optional** default 100 |
 
 **Description:** Retrieves generated videos associated with the provided instance ID.
 
@@ -218,28 +211,26 @@ If `page` and `size` are empty, it will return the first 100 generation results.
       vimeo_url: String - Nullable,
       thumbnail: String - Nullable,
       status: String,
-      checksum: Int,
+      checksum: int,
       execution_name: String - Nullable, (If video generation failed, you can report using this execution id.)
-      row_index: Int - Nullable, (It's the same number as names value sequence that you request in the Generate Video API.)
+      row_index: int - Nullable, (It's the same number as names value sequence that you request in the Generate Video API.)
       text: String[] - Nullable, (["Don", "Apple"])
       message: String - Nullable, 
-      created_at: Date,
-      updated_at: Date,
+      created_at: Datetime,
+      updated_at: Datetime
   }
 ]
 ```
 
 ### Get generated video by generate ID
 
-**Endpoint:** `https://studio.bhuman.ai/api/ai_studio/generated_video_by_id`
-
-**Method:** `GET`
-
-**Parameters:**
-
 ```
-id: Uuid - Required
+  GET https://studio.bhuman.ai/api/ai_studio/generated_video_by_id
 ```
+
+| Parameter | Type     | Description                |
+| :-------- | :------- | :------------------------- |
+| `id` | `Uuid` | **Required** generation id |
 
 **Description:** Retrieves generated video associated with the provided generate ID that returned by `try_sample`.
 
@@ -261,22 +252,20 @@ id: Uuid - Required
       row_index: Int - Nullable, (It's the same number as names value sequence that you request in the Generate Video API.)
       text: String[] - Nullable, (["Don", "Apple"])
       message: String - Nullable, 
-      created_at: Date,
-      updated_at: Date,
+      created_at: Datetime,
+      updated_at: Datetime
 }
 ```
 
 ### Get workspace
 
-**Endpoint:** `https://user.bhuman.ai/api/workspace`
-
-**Method:** `GET`
-
-**Parameters:** 
-
 ```
-id: Uuid - Optional  
+  GET https://user.bhuman.ai/api/workspace
 ```
+
+| Parameter | Type     | Description                |
+| :-------- | :------- | :------------------------- |
+| `id` | `Uuid` | **Optional** workspace id |
 
 **Description:** Retrieves information about the authenticated user's workspace.
 
@@ -290,17 +279,17 @@ id: Uuid - Optional
     name: String,                // workspace name
     role: String,                // workspace role, owner, member
     description: String,         // workspace description
-    created_at: Date,
-    updated_at: Date,
+    created_at: Datetime,
+    updated_at: Datetime
   }
 ]
 ```
 
 ### Get products from store
 
-**Endpoint:** `https://store.bhuman.ai/api/store/product`
-
-**Method:** `GET`
+```
+  GET https://store.bhuman.ai/api/store/product
+```
 
 **Description:** Retrieves available products from the store.
 
@@ -311,37 +300,35 @@ id: Uuid - Optional
   {
     id: Uuid,
     name: String,
-    category: Int,
+    category: int,
     description: String - Nullable,
     video_url: String - Nullable,
     image_url: String - Nullable,
     thumbnail: String - Nullable,
     creator_id: String,
     actor_id: Uuid,
-    length: Int,
-    downloads: Int,
-    ratings: Float,
-    reviews: Int,
-    tags: Int[] - Nullable,
-    created_at: Date,
+    length: int,
+    downloads: int,
+    ratings: float,
+    reviews: int,
+    tags: int[] - Nullable,
+    created_at: Datetime,
   }
 ]
 ```
 
 ### Use product
 
-**Endpoint:** `https://store.bhuman.ai/api/store/product/use`
-
-**Method:** `POST`
-
-**Parameters:**
-
 ```
-id: Uuid - Required,
-workspace_id: Uuid - Required,
-folder_id: Uuid - Optional,
-video_instance_id: Uuid - Optional,
+  POST https://store.bhuman.ai/api/store/product/use
 ```
+
+| Parameter | Type     | Description                |
+| :-------- | :------- | :------------------------- |
+| `id` | `Uuid` | **Required** product id |
+| `workspace_id` | `Uuid` | **Required** workspace id |
+| `folder_id` | `Uuid` | **Optional** folder id |
+| `video_instance_id` | `Uuid` | **Optional** video instance id |
 
 **Description:** Uses a specific product from the store.
 
@@ -361,19 +348,19 @@ If `folder_id` is present and `video_instance_id` is empty, it will create a new
     product: {
       id: Uuid,
       name: String,
-      category: Int,
+      category: int,
       description: String - Nullable,
       video_url: String - Nullable,
       image_url: String - Nullable,
       thumbnail: String - Nullable,
       creator_id: String,
       actor_id: Uuid,
-      length: Int,
-      downloads: Int,
-      ratings: Float,
-      reviews: Int,
-      tags: Int[] - Nullable,
-      created_at: Date,
+      length: int,
+      downloads: int,
+      ratings: float,
+      reviews: int,
+      tags: int[] - Nullable,
+      created_at: Datetime,
     },
     segments: Uuid[],
 }
@@ -381,9 +368,9 @@ If `folder_id` is present and `video_instance_id` is empty, it will create a new
 
 ### Get categories and tags
 
-**Endpoint:** `https://store.bhuman.ai/api/store/settings`
-
-**Method:** `GET`
+```
+  GET https://store.bhuman.ai/api/store/settings
+```
 
 **Description:** Get categories and tags from the store.
 
@@ -393,13 +380,13 @@ If `folder_id` is present and `video_instance_id` is empty, it will create a new
 {
   "category": [
     {
-      "id": Int,
+      "id": int,
       "name": String
     }
   ],
   "tags": [
     {
-      "id": Int,
+      "id": int,
       "name": String
     }
   ]
