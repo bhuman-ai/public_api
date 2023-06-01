@@ -202,6 +202,7 @@ If `page` and `size` are empty, it will return the first 100 generation results.
 ```
 [
   {
+      id: Uuid,
       user_id: String,
       video_id: Uuid,
       actor_id: Uuid,
@@ -238,6 +239,7 @@ If `page` and `size` are empty, it will return the first 100 generation results.
 
 ```
 {
+      id: Uuid,
       user_id: String,
       video_id: Uuid,
       actor_id: Uuid,
