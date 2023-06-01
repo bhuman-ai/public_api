@@ -211,6 +211,7 @@ If `page` and `size` are empty, it will return the first 100 generation results.
       url: String - Nullable,
       vimeo_url: String - Nullable,
       thumbnail: String - Nullable,
+      gif: String - Nullable,
       status: String,
       checksum: int,
       execution_name: String - Nullable, (If video generation failed, you can report using this execution id.)
@@ -248,6 +249,7 @@ If `page` and `size` are empty, it will return the first 100 generation results.
       url: String - Nullable,
       vimeo_url: String - Nullable,
       thumbnail: String - Nullable,
+      gif: String - Nullable,
       status: String,
       checksum: Int,
       execution_name: String - Nullable, (If video generation failed, you can report using this execution id.)
