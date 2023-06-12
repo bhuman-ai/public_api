@@ -7,6 +7,7 @@ Welcome to BHuman's Video Generation API Guide, a powerful tool that allows you 
 - [Prerequisites](#prerequisites)
 - [Authentication](#authentication)
 - [Understanding URLs](#understanding-urls)
+- [For PHP Users](#for-php-users)
 - [API Endpoints](#api-endpoints)
 - [Examples](#examples)
 - [Support](#support)
@@ -60,6 +61,12 @@ The last part of the URL (after the last `/`) represents the respective ID:
 
 - Campaign ID: `b3d2bfa8-fa75-49ed-9f8b-bb13452f49fd`
 - Instance ID: `7d859e18-dc89-446f-9718-9533bb178a75`
+
+## For PHP Users
+
+Many thanks to Henry Reith for their consistent efforts and contributions in developing the PHP SDK.
+
+https://github.com/henryreith/BHuman-PHP-SDK
 
 ## API Endpoints
 
