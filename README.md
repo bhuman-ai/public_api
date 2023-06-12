@@ -68,12 +68,14 @@ Here's a list of available API endpoints:
 1. [Get video instances by user](#get-video-instances-by-user)
 2. [Get video instance by instance ID](#get-video-instance-by-instance-id)
 3. [Generate video by instance ID](#generate-video-by-instance-id)
-4. [Get generated videos by instance ID](#get-generated-videos-by-instance-id)
-5. [Get generated video by generate ID](#get-generated-video-by-generate-id)
-6. [Get workspace](#get-workspace)
-7. [Get products from store](#get-products-from-store)
-8. [Use product](#use-product)
-9. [Get categories and tags](#get-categories-and-tags)
+4. [Generate video by campaign ID](#generate-video-by-campaign-id)
+5. [Get generated videos by instance ID](#get-generated-videos-by-instance-id)
+6. [Get generated videos by campaign ID](#get-generated-videos-by-campaign-id)
+7. [Get generated video by generate ID](#get-generated-video-by-generate-id)
+8. [Get workspace](#get-workspace)
+9. [Get products from store](#get-products-from-store)
+10. [Use product](#use-product)
+11. [Get categories and tags](#get-categories-and-tags)
 
 ### Get video instances by user
 
@@ -181,6 +183,46 @@ After finishing video generation, it will return the results via `callback_url` 
 | `url` | `String` | downloadable url `https://tmp-prod-492171.s3.us-east-2.amazonaws.com/pipeline-out/0515c90c-44ae-4755-96c7-843040c3a86f.mp4` |
 | `gif` | `String` | downloadable url `https://tmp-prod-492171.s3.us-east-2.amazonaws.com/pipeline-out/74dddb8c-0894-44bf-935b-9ab5b4056f59.gif` |
 
+### Generate video by campaign ID
+
+```
+  POST https://studio.bhuman.ai/api/ai_studio/pipeline/campaign
+```
+
+| Parameter | Type     | Description                |
+| :-------- | :------- | :------------------------- |
+| `names` | `String[][]` | **Required** names array |
+| `variables` | `String[]` | **Required** variable array |
+| `campaign_id` | `Uuid` | **Required** campaign id |
+| `callback_url` | `String` | **Optional** if callback url present, platform will return generated videos via callback url |
+
+**Description:** Generates a video using the provided campaign ID.
+
+If `callback_url` is empty, you may get the generated videos using [Get generated videos by campaign ID](#get-generated-videos-by-campaign-id)
+
+**Reponse:** Video generation id list, this will return as soon as called API
+
+```
+{
+  "result": [
+    "c10ee155-6202-4cec-9a40-dde536e2ab4e"
+  ]
+}
+```
+
+After finishing video generation, it will return the results via `callback_url` using the `POST` method, and here is the payload.
+
+(1 callback per 1 generation)
+
+| Parameter | Type     | Description                |
+| :-------- | :------- | :------------------------- |
+| `id` | `Uuid` | generation id `c10ee155-6202-4cec-9a40-dde536e2ab4e` |
+| `status` | `String` | generation status `succeeded` or `failed`, `processing` |
+| `video_url` | `String` | vimeo url `https://vimeo.com/822632664/8cbe80ad5f` |
+| `thumbnail` | `String` | thumbnail url `https://tmp-prod-492171.s3.us-east-2.amazonaws.com/pipeline-out/dc44f89e-cc94-48a0-8261-8013081eba0c.png` |
+| `url` | `String` | downloadable url `https://tmp-prod-492171.s3.us-east-2.amazonaws.com/pipeline-out/0515c90c-44ae-4755-96c7-843040c3a86f.mp4` |
+| `gif` | `String` | downloadable url `https://tmp-prod-492171.s3.us-east-2.amazonaws.com/pipeline-out/74dddb8c-0894-44bf-935b-9ab5b4056f59.gif` |
+
 ### Get generated videos by instance ID
 
 ```
@@ -194,6 +236,49 @@ After finishing video generation, it will return the results via `callback_url` 
 | `size` | `int` | **Optional** default 100 |
 
 **Description:** Retrieves generated videos associated with the provided instance ID.
+
+If `page` and `size` are empty, it will return the first 100 generation results.
+
+**Response:** Generated Videos
+
+```
+[
+  {
+      id: Uuid,
+      user_id: String,
+      video_id: Uuid,
+      actor_id: Uuid,
+      video_instance_id: Uuid - Nullable,
+      campaign_id: Uuid - Nullable,
+      url: String - Nullable,
+      vimeo_url: String - Nullable,
+      thumbnail: String - Nullable,
+      gif: String - Nullable,
+      status: String,
+      checksum: int,
+      execution_name: String - Nullable, (If video generation failed, you can report using this execution id.)
+      row_index: int - Nullable, (It's the same number as names value sequence that you request in the Generate Video API.)
+      text: String[] - Nullable, (["Don", "Apple"])
+      message: String - Nullable, 
+      created_at: Datetime,
+      updated_at: Datetime
+  }
+]
+```
+
+### Get generated videos by campaign ID
+
+```
+  GET https://studio.bhuman.ai/api/ai_studio/generated_video_by_campaign_id
+```
+
+| Parameter | Type     | Description                |
+| :-------- | :------- | :------------------------- |
+| `campaign_id` | `Uuid` | **Required** campaign id |
+| `page` | `int` | **Optional** start from 0 |
+| `size` | `int` | **Optional** default 100 |
+
+**Description:** Retrieves generated videos associated with the provided campaign ID.
 
 If `page` and `size` are empty, it will return the first 100 generation results.
 
@@ -437,8 +522,25 @@ payload = {
 response = requests.post(url, json=payload, headers=headers)
 print(response.json())
 
+# Generate video by campaign ID
+campaign_id = "d744af70-cd3c-4a41-8bfe-89238f937a3b"
+url = "https://studio.bhuman.ai/api/ai_studio/pipeline/campaign"
+payload = {
+  "callback_url": "https://xxx.yyy.zzz?my_query_param1=aaa&my_query_param2=bbb",
+  "names": [["Don", "Apple"], ["James", "Google"]],
+  "variables": ["name", "company"],
+  "campaign_id": campaign_id
+}
+response = requests.post(url, json=payload, headers=headers)
+print(response.json())
+
 # Get generated videos by instance ID
 url = f"https://studio.bhuman.ai/api/ai_studio/generated_video_by_video_instance_id?video_instance_id={instance_id}&page=0&size=100"
+response = requests.get(url, headers=headers)
+print(response.json())
+
+# Get generated videos by campaign ID
+url = f"https://studio.bhuman.ai/api/ai_studio/generated_video_by_campaign_id?campaign_id={campaign_id}&page=0&size=100"
 response = requests.get(url, headers=headers)
 print(response.json())
 
