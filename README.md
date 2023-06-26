@@ -160,14 +160,39 @@ Here's a list of available API endpoints:
 | :-------- | :------- | :------------------------- |
 | `names` | `String[][]` | **Required** names array |
 | `variables` | `String[]` | **Required** variable array |
+| `backgrounds` | `Background[]` | **Optional**                                                                                                                    |
+| `assets`      | `String[][]`   | **Optional** URL matrix, only HTTPS and HTTP schemes are supported. Automatically prepends `https://` if no HTTP scheme defined |
 | `video_instance_id` | `Uuid` | **Required** video instance id |
-| `callback_url` | `String` | **Optional** if callback url present, platform will return generated videos via callback url |
+| `callback_url` | `String` | **Optional** If callback URL is present, the platform will return generated videos via callback url |
+
+#### Background
+
+| Field    | Type               | Description                                                                              |
+| :------- | :----------------- | :--------------------------------------------------------------------------------------- |
+| `name`   | `String`           | **Optional** reference name of the background for debugging                              |
+| `start`  | `Number`           | **Required** start time of the background segment in seconds                             |
+| `end`    | `Number`           | **Required** end time of the background in seconds. Use -1 for the duration of the video |
+| `kind`   | `String`           | **Required** kind of the background, one of `"link"`, `"site"`, `"linkedin"`             |
+| `config` | `BackgroundConfig` | **Required** configuration of the background                                             |
+
+#### BackgroundConfig
+
+| Field        | Type      | Description                                                                                                       |
+| :----------- | :-------- | :---------------------------------------------------------------------------------------------------------------- |
+| `mode`       | `String`  | **Required** mode of the background segment, one of "basic", "circle", "chroma"                                   |
+| `scale`      | `Number`  | **Default `0.4`** scale factor of the video overlay                                                               |
+| `position`   | `String`  | **Default `"bottom-right"`** position of the background. Can be "center", "bottom", "bottom-left", "top-right"... |
+| `audio`      | `Boolean` | **Default `false`** whether to use audio of the background segment                                                |
+| `brightness` | `Number`  | **Default `1`** brightness level of the background non-covered area                                               |
+| `color`      | `String`  | **Default `"00FF00"`** color of the background in HEX when using "chroma" mode                                    |
+| `similarity` | `Number`  | **Default `0.1`** similarity level of the background in "chroma" mode                                             |
+| `blend`      | `Number`  | **Default `0.1`** blend level of the background in "chroma" mode                                                  |
 
 **Description:** Generates a video using the provided instance ID.
 
 If `callback_url` is empty, you may get the generated videos using [Get generated videos by instance ID](#get-generated-videos-by-instance-id)
 
-**Reponse:** Video generation id list, this will return as soon as called API
+**Response:** Video generation id list, this will return as soon as called API
 
 ```
 {
@@ -201,13 +226,13 @@ After finishing video generation, it will return the results via `callback_url` 
 | `names` | `String[][]` | **Required** names array |
 | `variables` | `String[]` | **Required** variable array |
 | `campaign_id` | `Uuid` | **Required** campaign id |
-| `callback_url` | `String` | **Optional** if callback url present, platform will return generated videos via callback url |
+| `callback_url` | `String` | **Optional** If callback URL is present, the platform will return generated videos via callback url |
 
 **Description:** Generates a video using the provided campaign ID.
 
 If `callback_url` is empty, you may get the generated videos using [Get generated videos by campaign ID](#get-generated-videos-by-campaign-id)
 
-**Reponse:** Video generation id list, this will return as soon as called API
+**Response:** Video generation id list, this will return as soon as called API
 
 ```
 {
@@ -264,7 +289,7 @@ If `page` and `size` are empty, it will return the first 100 generation results.
       status: String,
       checksum: int,
       execution_name: String - Nullable, (If video generation failed, you can report using this execution id.)
-      row_index: int - Nullable, (It's the same number as names value sequence that you request in the Generate Video API.)
+      row_index: int - Nullable, (It's the same number as the names value sequence that you request in the Generate Video API.)
       text: String[] - Nullable, (["Don", "Apple"])
       message: String - Nullable, 
       created_at: Datetime,
@@ -307,7 +332,7 @@ If `page` and `size` are empty, it will return the first 100 generation results.
       status: String,
       checksum: int,
       execution_name: String - Nullable, (If video generation failed, you can report using this execution id.)
-      row_index: int - Nullable, (It's the same number as names value sequence that you request in the Generate Video API.)
+      row_index: int - Nullable, (It's the same number as the names value sequence that you request in the Generate Video API.)
       text: String[] - Nullable, (["Don", "Apple"])
       message: String - Nullable, 
       created_at: Datetime,
@@ -326,7 +351,7 @@ If `page` and `size` are empty, it will return the first 100 generation results.
 | :-------- | :------- | :------------------------- |
 | `id` | `Uuid` | **Required** generation id |
 
-**Description:** Retrieves generated video associated with the provided generate ID that returned by `try_sample`.
+**Description:** Retrieves generated video associated with the provided generate ID that is returned by `try_sample`.
 
 **Response:** Generated Video
 
@@ -345,7 +370,7 @@ If `page` and `size` are empty, it will return the first 100 generation results.
       status: String,
       checksum: Int,
       execution_name: String - Nullable, (If video generation failed, you can report using this execution id.)
-      row_index: Int - Nullable, (It's the same number as names value sequence that you request in the Generate Video API.)
+      row_index: Int - Nullable, (It's the same number as the names value sequence that you request in the Generate Video API.)
       text: String[] - Nullable, (["Don", "Apple"])
       message: String - Nullable, 
       created_at: Datetime,
@@ -381,7 +406,7 @@ If `page` and `size` are empty, it will return the first 100 generation results.
 ]
 ```
 
-### Get products from store
+### Get products from the store
 
 ```
   GET https://store.bhuman.ai/api/store/product
@@ -434,7 +459,7 @@ If `video_instance_id` is present, `folder_id` can not be empty.
 
 If `folder_id` is present and `video_instance_id` is empty, it will create a new video instance.
 
-**Reponse:** 
+**Response:** 
 
 ```
 {
@@ -524,6 +549,25 @@ payload = {
   "callback_url": "https://xxx.yyy.zzz?my_query_param1=aaa&my_query_param2=bbb",
   "names": [["Don", "Apple"], ["James", "Google"]],
   "variables": ["name", "company"],
+  "assets":[
+    // [asset url for 1st background, asset url for 2nd background]
+    ["https://www.apple.com", "https://www.video.com/don.mp4"],   // row for Don  
+    ["https://www.google.com", "https://www.video.com/james.mp4"] // row for James
+  ],
+  "backgrounds": [
+    {
+      "start": 0,                                       // from the start
+      "end": 3,                                         // to the 3rd second  
+      "kind": "site",                                   // show a website screenshot
+      "config": { "mode": "circle" }                    // with the template inside a circle
+   },
+   {
+      "start": 3,                                       // from the 3rd second  
+      "end": -1,                                        // to the end
+      "kind": "link",                                   // show a video or an image
+      "config": { "mode": "chroma", "color": "00FF00" } // using a green screen
+    }
+  ],
   "video_instance_id": instance_id
 }
 response = requests.post(url, json=payload, headers=headers)
