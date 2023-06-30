@@ -225,6 +225,8 @@ After finishing video generation, it will return the results via `callback_url` 
 | :-------- | :------- | :------------------------- |
 | `names` | `String[][]` | **Required** names array |
 | `variables` | `String[]` | **Required** variable array |
+| `backgrounds` | `Background[]` | **Optional**                                                                                                                    |
+| `assets`      | `String[][]`   | **Optional** URL matrix, only HTTPS and HTTP schemes are supported. Automatically prepends `https://` if no HTTP scheme defined |
 | `campaign_id` | `Uuid` | **Required** campaign id |
 | `callback_url` | `String` | **Optional** If callback URL is present, the platform will return generated videos via callback url |
 
