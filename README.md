@@ -7,6 +7,11 @@ canonical, latest docs live on the BHuman website:
 
 - https://www.bhuman.ai/docs/api
 
+The generated Swagger UI and OpenAPI schema are available here:
+
+- https://studio.bhuman.ai/swagger-ui/
+- https://studio.bhuman.ai/swagger-ui/openapi.json
+
 Use the BHuman API with AI Studio templates, campaigns, generated videos, and
 store products.
 
@@ -34,7 +39,7 @@ Personalized videos can start from either source:
 
 1. **Recorded or uploaded base video in AI Studio**
    - Record or upload a presenter video.
-   - Mark variables such as `name`, `company`, `address`, or `city`.
+   - Mark variables such as `first_name`, `company`, `product_name`, or `cta_url`.
    - Use the API to pass recipient-specific values and optional assets.
 
 2. **Generated presenter video from Speakeasy**
@@ -140,10 +145,10 @@ curl -X POST "https://studio.bhuman.ai/api/ai_studio/pipeline/campaign" \
   -H "Content-Type: application/json" \
   -d '{
     "campaign_id": "d744af70-cd3c-4a41-8bfe-89238f937a3b",
-    "variables": ["name", "address"],
+    "variables": ["first_name", "company"],
     "names": [
-      ["Graeham", "123 Main Street"],
-      ["Taylor", "410 Oak Avenue"]
+      ["Alex", "ExampleCo"],
+      ["Jordan", "Sample Labs"]
     ],
     "callback_url": "https://example.com/webhooks/bhuman"
   }'
@@ -201,10 +206,10 @@ curl -X POST "https://studio.bhuman.ai/api/ai_studio/try_sample" \
   -H "Content-Type: application/json" \
   -d '{
     "video_instance_id": "7d859e18-dc89-446f-9718-9533bb178a75",
-    "variables": ["name", "company"],
+    "variables": ["first_name", "company"],
     "names": [
-      ["Don", "Apple"],
-      ["James", "Google"]
+      ["Alex", "ExampleCo"],
+      ["Jordan", "Sample Labs"]
     ],
     "callback_url": "https://example.com/webhooks/bhuman"
   }'
@@ -228,28 +233,28 @@ Example:
 
 ```json
 {
-  "variables": ["name", "company", "address"],
+  "variables": ["first_name", "company", "cta_url"],
   "names": [
-    ["Graeham", "Acme Realty", "123 Main Street"],
-    ["Taylor", "Northstar Homes", "410 Oak Avenue"]
+    ["Alex", "ExampleCo", "https://example.com/start"],
+    ["Jordan", "Sample Labs", "https://example.com/book"]
   ]
 }
 ```
 
-For a real estate lead workflow, common variables are:
+For a generic customer workflow, common variables are:
 
-- `name`
-- `address`
-- `city`
-- `neighborhood`
-- `agent_name`
-- `calendly_url`
-- `home_evaluation_url`
+- `first_name`
+- `company`
+- `product_name`
+- `plan_name`
+- `cta_url`
+- `booking_url`
+- `renewal_date`
 
 ## Dynamic backgrounds
 
 Dynamic backgrounds let a generated video show a website, image, video, LinkedIn
-page, property page, landing page, or other URL behind or around the presenter.
+page, product page, landing page, or other URL behind or around the presenter.
 
 `assets` is a row-by-row matrix. Each recipient row can provide one or more URLs
 used by the matching background segment.
@@ -258,14 +263,14 @@ Example:
 
 ```json
 {
-  "variables": ["name", "company"],
+  "variables": ["first_name", "company"],
   "names": [
-    ["Don", "Apple"],
-    ["James", "Google"]
+    ["Alex", "ExampleCo"],
+    ["Jordan", "Sample Labs"]
   ],
   "assets": [
-    ["https://www.apple.com", "https://example.com/don-property.mp4"],
-    ["https://www.google.com", "https://example.com/james-property.mp4"]
+    ["https://example.com/product", "https://example.com/alex-demo.mp4"],
+    ["https://example.com/pricing", "https://example.com/jordan-demo.mp4"]
   ],
   "backgrounds": [
     {
@@ -280,7 +285,7 @@ Example:
       }
     },
     {
-      "name": "property-video",
+      "name": "demo-video",
       "start": 3,
       "end": -1,
       "kind": "link",
