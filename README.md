@@ -1,200 +1,154 @@
-# BHuman Video Generation API Guide
+# BHuman API Docs
 
-Welcome to BHuman's Video Generation API Guide, a powerful tool that allows you to generate customized videos using AI. With our API, you can easily integrate video generation capabilities into your applications and create stunning, personalized content for your users. In this README, we'll provide you with step-by-step instructions on how to use our API.
+This is the current public guide for using the BHuman API with AI Studio templates,
+campaigns, generated videos, and store products.
 
-## Table of Contents
+Canonical API docs also live on the BHuman website:
 
-- [Prerequisites](#prerequisites)
-- [Authentication](#authentication)
-- [Understanding URLs](#understanding-urls)
-- [For PHP Users](#for-php-users)
-- [API Endpoints](#api-endpoints)
-- [Examples](#examples)
-- [Support](#support)
+- https://www.bhuman.ai/docs/api
 
-## Prerequisites
+## Important note about older docs
 
-To use our API, you'll need to generate an API key. Follow these steps:
+Older help center articles, screenshots, and videos may mention "Easy Mode" and
+"Advanced Mode." Those terms describe an older product flow and should not be
+used for new setup.
 
-1. Log in to your BHuman account.
-2. Navigate to the "Settings" page.
-3. Click on "API keys."
-4. Click the "Generate" button.
-5. Copy the generated API key.
+The current model is:
 
-Keep your API key safe, as you'll need it for authentication.
+1. Create or import an AI Studio video template.
+2. Define the variables that should change per recipient.
+3. Generate personalized videos through AI Studio, a campaign, or the API.
+4. Use callback URLs or polling endpoints to collect video, thumbnail, and GIF
+   assets.
+
+The `BackgroundConfig.mode` field shown later in this guide is still valid, but
+it only controls how a dynamic background is displayed (`basic`, `circle`, or
+`chroma`). It is unrelated to the old Easy Mode or Advanced Mode flow.
+
+## Common setup paths
+
+Personalized videos can start from either source:
+
+1. **Recorded or uploaded base video in AI Studio**
+   - Record or upload a presenter video.
+   - Mark variables such as `name`, `company`, `address`, or `city`.
+   - Use the API to pass recipient-specific values and optional assets.
+
+2. **Generated presenter video from Speakeasy**
+   - Generate the presenter and voice in Speakeasy.
+   - Import the result into AI Studio.
+   - Mark variables in AI Studio.
+   - Trigger personalized renders through campaign or template API calls.
 
 ## Authentication
 
-Our API uses Basic Authentication. You'll need to include your API key in the `Authorization` header of your requests. Here's an example of how to do this with Python:
+BHuman API keys use Basic Authentication.
+
+Create an API key in BHuman:
+
+1. Sign in to BHuman.
+2. Open **Settings**.
+3. Open **API keys**.
+4. Generate a key.
+5. Store the key ID and secret securely.
+
+Example header:
+
+```bash
+Authorization: Basic BASE64_ENCODED_KEY_ID_AND_SECRET
+```
+
+Example cURL setup:
+
+```bash
+export BHUMAN_API_KEY_ID="your_api_key_id"
+export BHUMAN_API_KEY_SECRET="your_api_key_secret"
+
+AUTH_HEADER=$(printf "%s:%s" "$BHUMAN_API_KEY_ID" "$BHUMAN_API_KEY_SECRET" | base64)
+```
+
+Python helper:
 
 ```python
-import requests
 import base64
 
-# Replace with your actual API key ID and secret
 api_key_id = "your_api_key_id"
 api_key_secret = "your_api_key_secret"
 
-# Combine the API key ID and secret using a colon separator and encode it in base64
-api_key_combined = f"{api_key_id}:{api_key_secret}"
-api_key_encoded = base64.b64encode(api_key_combined.encode()).decode()
-
-headers = {"Authorization": f"Basic {api_key_encoded}"}
-
-# Example API request: Get video instances by user
-url = "https://studio.bhuman.ai/api/ai_studio/video_instance"
-response = requests.get(url, headers=headers)
-print(response.json())
+token = base64.b64encode(f"{api_key_id}:{api_key_secret}".encode()).decode()
+headers = {"Authorization": f"Basic {token}"}
 ```
 
-Replace `your_api_key` with the actual API key you generated earlier.
+## IDs and URLs
 
-## Understanding URLs
+Most API calls require an AI Studio video instance ID, a campaign ID, or a
+generation ID.
 
-To use our API effectively, you'll need to understand how to extract information from the platform's URLs. Here are two example URLs:
+Examples:
 
-- Campaign ID URL: `https://app.bhuman.ai/campaign/generatedVideos/b3d2bfa8-fa75-49ed-9f8b-bb13452f49fd`
-- Instance ID URL: `https://app.bhuman.ai/instance/7d859e18-dc89-446f-9718-9533bb178a75`
+- Campaign URL: `https://app.bhuman.ai/campaign/generatedVideos/b3d2bfa8-fa75-49ed-9f8b-bb13452f49fd`
+- Instance URL: `https://app.bhuman.ai/instance/7d859e18-dc89-446f-9718-9533bb178a75`
 
-The last part of the URL (after the last `/`) represents the respective ID:
+The final path segment is the ID:
 
 - Campaign ID: `b3d2bfa8-fa75-49ed-9f8b-bb13452f49fd`
-- Instance ID: `7d859e18-dc89-446f-9718-9533bb178a75`
+- Video instance ID: `7d859e18-dc89-446f-9718-9533bb178a75`
 
-## For PHP Users
+## Endpoint summary
 
-Many thanks to Henry Reith for their consistent efforts and contributions in developing the PHP SDK.
+| Method | Endpoint | Purpose |
+| :-- | :-- | :-- |
+| `GET` | `https://studio.bhuman.ai/api/ai_studio/video_instances` | List AI Studio video instances |
+| `GET` | `https://studio.bhuman.ai/api/ai_studio/video_instance` | Get one video instance |
+| `POST` | `https://studio.bhuman.ai/api/ai_studio/try_sample` | Generate videos from a video instance |
+| `POST` | `https://studio.bhuman.ai/api/ai_studio/pipeline/campaign` | Generate videos from a campaign |
+| `GET` | `https://studio.bhuman.ai/api/ai_studio/generated_video_by_video_instance_id` | List generated videos for an instance |
+| `GET` | `https://studio.bhuman.ai/api/ai_studio/generated_video_by_campaign_id` | List generated videos for a campaign |
+| `GET` | `https://studio.bhuman.ai/api/ai_studio/generated_video_by_id` | Get one generated video |
+| `GET` | `https://user.bhuman.ai/api/workspace` | Get workspace data |
+| `GET` | `https://store.bhuman.ai/api/store/product` | List store products |
+| `POST` | `https://store.bhuman.ai/api/store/product/use` | Use a store product |
+| `GET` | `https://store.bhuman.ai/api/store/settings` | Get store categories and tags |
 
-https://github.com/henryreith/BHuman-PHP-SDK
+## Generate videos from a campaign
 
-## API Endpoints
+Use this endpoint when your workflow is based on a campaign.
 
-Here's a list of available API endpoints:
-
-1. [Get video instances by user](#get-video-instances-by-user)
-2. [Get video instance by instance ID](#get-video-instance-by-instance-id)
-3. [Generate video by instance ID](#generate-video-by-instance-id)
-4. [Generate video by campaign ID](#generate-video-by-campaign-id)
-5. [Get generated videos by instance ID](#get-generated-videos-by-instance-id)
-6. [Get generated videos by campaign ID](#get-generated-videos-by-campaign-id)
-7. [Get generated video by generate ID](#get-generated-video-by-generate-id)
-8. [Get workspace](#get-workspace)
-9. [Get products from store](#get-products-from-store)
-10. [Use product](#use-product)
-11. [Get categories and tags](#get-categories-and-tags)
-
-### Get video instances by user
-
-```
-  GET https://studio.bhuman.ai/api/ai_studio/video_instances
+```http
+POST https://studio.bhuman.ai/api/ai_studio/pipeline/campaign
 ```
 
-| Parameter | Type     | Description                |
-| :-------- | :------- | :------------------------- |
-| `page` | `int` | **Required** start from 0 |
-| `size` | `int` | **Required** max 100 |
+Request body:
 
-**Description:** Retrieves video instances associated with the authenticated user.
+| Field | Type | Required | Notes |
+| :-- | :-- | :-- | :-- |
+| `campaign_id` | `Uuid` | Yes | Campaign ID |
+| `variables` | `String[]` | Yes | Variable names in the same order as each row in `names` |
+| `names` | `String[][]` | Yes | Recipient rows. Each row maps to `variables` by position |
+| `callback_url` | `String` | No | BHuman sends one callback per generated video |
+| `backgrounds` | `Background[]` | No | Dynamic background segments |
+| `assets` | `String[][]` | No | Asset URL rows used by dynamic backgrounds |
 
-**Reponse:** Video Instance list and total count
+Example:
 
-```
-{
-  total: int,
-  instances: [
-    {
-      id: Uuid,
-      name: String,
-      user_id: String,
-      folder_id: Uuid,
-      actor_id: Uuid - Nullable,
-      product_id: Uuid - Nullable,
-      industry: int,
-      use_case: String - Nullable,
-      created_at: Datetime,
-      updated_at: Datetime
-    }
-  ]
-}
-```
-
-### Get video instance by instance ID
-
-```
-  GET https://studio.bhuman.ai/api/ai_studio/video_instance
+```bash
+curl -X POST "https://studio.bhuman.ai/api/ai_studio/pipeline/campaign" \
+  -H "Authorization: Basic $AUTH_HEADER" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "campaign_id": "d744af70-cd3c-4a41-8bfe-89238f937a3b",
+    "variables": ["name", "address"],
+    "names": [
+      ["Graeham", "123 Main Street"],
+      ["Taylor", "410 Oak Avenue"]
+    ],
+    "callback_url": "https://example.com/webhooks/bhuman"
+  }'
 ```
 
-| Parameter | Type     | Description                |
-| :-------- | :------- | :------------------------- |
-| `id` | `Uuid` | **Required** video instance id |
+Immediate response:
 
-**Description:** Retrieves a specific video instance based on the provided instance ID.
-
-**Reponse:** Video Instance list
-
-```
-[
-  {
-    id: Uuid,
-    name: String,
-    user_id: String,
-    folder_id: Uuid,
-    actor_id: Uuid - Nullable,
-    product_id: Uuid - Nullable,
-    industry: int,
-    use_case: String - Nullable,
-    created_at: Datetime,
-    updated_at: Datetime
-  }
-]
-```
-
-### Generate video by instance ID
-
-```
-  POST https://studio.bhuman.ai/api/ai_studio/try_sample
-```
-
-| Parameter | Type     | Description                |
-| :-------- | :------- | :------------------------- |
-| `names` | `String[][]` | **Required** names array |
-| `variables` | `String[]` | **Required** variable array |
-| `backgrounds` | `Background[]` | **Optional**                                                                                                                    |
-| `assets`      | `String[][]`   | **Optional** URL matrix, only HTTPS and HTTP schemes are supported. Automatically prepends `https://` if no HTTP scheme defined |
-| `video_instance_id` | `Uuid` | **Required** video instance id |
-| `callback_url` | `String` | **Optional** If callback URL is present, the platform will return generated videos via callback url |
-
-#### Background
-
-| Field    | Type               | Description                                                                              |
-| :------- | :----------------- | :--------------------------------------------------------------------------------------- |
-| `name`   | `String`           | **Optional** reference name of the background for debugging                              |
-| `start`  | `Number`           | **Required** start time of the background segment in seconds                             |
-| `end`    | `Number`           | **Required** end time of the background in seconds. Use -1 for the duration of the video |
-| `kind`   | `String`           | **Required** kind of the background, one of `"link"`, `"site"`, `"linkedin"`             |
-| `config` | `BackgroundConfig` | **Required** configuration of the background                                             |
-
-#### BackgroundConfig
-
-| Field        | Type      | Description                                                                                                       |
-| :----------- | :-------- | :---------------------------------------------------------------------------------------------------------------- |
-| `mode`       | `String`  | **Required** mode of the background segment, one of "basic", "circle", "chroma"                                   |
-| `scale`      | `Number`  | **Default `0.4`** scale factor of the video overlay                                                               |
-| `position`   | `String`  | **Default `"bottom-right"`** position of the background. Can be "center", "bottom", "bottom-left", "top-right"... |
-| `audio`      | `Boolean` | **Default `false`** whether to use audio of the background segment                                                |
-| `brightness` | `Number`  | **Default `1`** brightness level of the background non-covered area                                               |
-| `color`      | `String`  | **Default `"00FF00"`** color of the background in HEX when using "chroma" mode                                    |
-| `similarity` | `Number`  | **Default `0.1`** similarity level of the background in "chroma" mode                                             |
-| `blend`      | `Number`  | **Default `0.1`** blend level of the background in "chroma" mode                                                  |
-
-**Description:** Generates a video using the provided instance ID.
-
-If `callback_url` is empty, you may get the generated videos using [Get generated videos by instance ID](#get-generated-videos-by-instance-id)
-
-**Response:** Video generation id list, this will return as soon as called API
-
-```
+```json
 {
   "result": [
     "c10ee155-6202-4cec-9a40-dde536e2ab4e"
@@ -202,41 +156,60 @@ If `callback_url` is empty, you may get the generated videos using [Get generate
 }
 ```
 
-After finishing video generation, it will return the results via `callback_url` using the `POST` method, and here is the payload.
+If `callback_url` is provided, BHuman sends a `POST` callback for each
+generation.
 
-(1 callback per 1 generation)
+Callback payload:
 
-| Parameter | Type     | Description                |
-| :-------- | :------- | :------------------------- |
-| `id` | `Uuid` | generation id `c10ee155-6202-4cec-9a40-dde536e2ab4e` |
-| `status` | `String` | generation status `succeeded` or `failed`, `processing` |
-| `video_url` | `String` | vimeo url `https://vimeo.com/822632664/8cbe80ad5f` |
-| `thumbnail` | `String` | thumbnail url `https://tmp-prod-492171.s3.us-east-2.amazonaws.com/pipeline-out/dc44f89e-cc94-48a0-8261-8013081eba0c.png` |
-| `url` | `String` | downloadable url `https://tmp-prod-492171.s3.us-east-2.amazonaws.com/pipeline-out/0515c90c-44ae-4755-96c7-843040c3a86f.mp4` |
-| `gif` | `String` | downloadable url `https://tmp-prod-492171.s3.us-east-2.amazonaws.com/pipeline-out/74dddb8c-0894-44bf-935b-9ab5b4056f59.gif` |
+| Field | Type | Notes |
+| :-- | :-- | :-- |
+| `id` | `Uuid` | Generation ID |
+| `status` | `String` | `succeeded`, `failed`, or `processing` |
+| `video_url` | `String` | Hosted playback URL |
+| `url` | `String` | Downloadable MP4 URL |
+| `thumbnail` | `String` | Downloadable thumbnail URL |
+| `gif` | `String` | Downloadable GIF URL |
 
-### Generate video by campaign ID
+## Generate videos from a video instance
 
+Use this endpoint when your workflow targets a specific AI Studio video
+instance.
+
+```http
+POST https://studio.bhuman.ai/api/ai_studio/try_sample
 ```
-  POST https://studio.bhuman.ai/api/ai_studio/pipeline/campaign
+
+Request body:
+
+| Field | Type | Required | Notes |
+| :-- | :-- | :-- | :-- |
+| `video_instance_id` | `Uuid` | Yes | AI Studio video instance ID |
+| `variables` | `String[]` | Yes | Variable names in the same order as each row in `names` |
+| `names` | `String[][]` | Yes | Recipient rows. Each row maps to `variables` by position |
+| `callback_url` | `String` | No | BHuman sends one callback per generated video |
+| `backgrounds` | `Background[]` | No | Dynamic background segments |
+| `assets` | `String[][]` | No | Asset URL rows used by dynamic backgrounds |
+
+Example:
+
+```bash
+curl -X POST "https://studio.bhuman.ai/api/ai_studio/try_sample" \
+  -H "Authorization: Basic $AUTH_HEADER" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "video_instance_id": "7d859e18-dc89-446f-9718-9533bb178a75",
+    "variables": ["name", "company"],
+    "names": [
+      ["Don", "Apple"],
+      ["James", "Google"]
+    ],
+    "callback_url": "https://example.com/webhooks/bhuman"
+  }'
 ```
 
-| Parameter | Type     | Description                |
-| :-------- | :------- | :------------------------- |
-| `names` | `String[][]` | **Required** names array |
-| `variables` | `String[]` | **Required** variable array |
-| `backgrounds` | `Background[]` | **Optional**                                                                                                                    |
-| `assets`      | `String[][]`   | **Optional** URL matrix, only HTTPS and HTTP schemes are supported. Automatically prepends `https://` if no HTTP scheme defined |
-| `campaign_id` | `Uuid` | **Required** campaign id |
-| `callback_url` | `String` | **Optional** If callback URL is present, the platform will return generated videos via callback url |
+Immediate response:
 
-**Description:** Generates a video using the provided campaign ID.
-
-If `callback_url` is empty, you may get the generated videos using [Get generated videos by campaign ID](#get-generated-videos-by-campaign-id)
-
-**Response:** Video generation id list, this will return as soon as called API
-
-```
+```json
 {
   "result": [
     "c10ee155-6202-4cec-9a40-dde536e2ab4e"
@@ -244,390 +217,224 @@ If `callback_url` is empty, you may get the generated videos using [Get generate
 }
 ```
 
-After finishing video generation, it will return the results via `callback_url` using the `POST` method, and here is the payload.
+## Variables and recipient rows
 
-(1 callback per 1 generation)
+`variables` defines the column order. `names` supplies the recipient values.
 
-| Parameter | Type     | Description                |
-| :-------- | :------- | :------------------------- |
-| `id` | `Uuid` | generation id `c10ee155-6202-4cec-9a40-dde536e2ab4e` |
-| `status` | `String` | generation status `succeeded` or `failed`, `processing` |
-| `video_url` | `String` | vimeo url `https://vimeo.com/822632664/8cbe80ad5f` |
-| `thumbnail` | `String` | thumbnail url `https://tmp-prod-492171.s3.us-east-2.amazonaws.com/pipeline-out/dc44f89e-cc94-48a0-8261-8013081eba0c.png` |
-| `url` | `String` | downloadable url `https://tmp-prod-492171.s3.us-east-2.amazonaws.com/pipeline-out/0515c90c-44ae-4755-96c7-843040c3a86f.mp4` |
-| `gif` | `String` | downloadable url `https://tmp-prod-492171.s3.us-east-2.amazonaws.com/pipeline-out/74dddb8c-0894-44bf-935b-9ab5b4056f59.gif` |
+Example:
 
-### Get generated videos by instance ID
-
-```
-  GET https://studio.bhuman.ai/api/ai_studio/generated_video_by_video_instance_id
-```
-
-| Parameter | Type     | Description                |
-| :-------- | :------- | :------------------------- |
-| `video_instance_id` | `Uuid` | **Required** video instance id |
-| `page` | `int` | **Optional** start from 0 |
-| `size` | `int` | **Optional** default 100 |
-
-**Description:** Retrieves generated videos associated with the provided instance ID.
-
-If `page` and `size` are empty, it will return the first 100 generation results.
-
-**Response:** Generated Videos
-
-```
-[
-  {
-      id: Uuid,
-      user_id: String,
-      video_id: Uuid,
-      actor_id: Uuid,
-      video_instance_id: Uuid - Nullable,
-      campaign_id: Uuid - Nullable,
-      url: String - Nullable,
-      vimeo_url: String - Nullable,
-      thumbnail: String - Nullable,
-      gif: String - Nullable,
-      status: String,
-      checksum: int,
-      execution_name: String - Nullable, (If video generation failed, you can report using this execution id.)
-      row_index: int - Nullable, (It's the same number as the names value sequence that you request in the Generate Video API.)
-      text: String[] - Nullable, (["Don", "Apple"])
-      message: String - Nullable, 
-      created_at: Datetime,
-      updated_at: Datetime
-  }
-]
-```
-
-### Get generated videos by campaign ID
-
-```
-  GET https://studio.bhuman.ai/api/ai_studio/generated_video_by_campaign_id
-```
-
-| Parameter | Type     | Description                |
-| :-------- | :------- | :------------------------- |
-| `campaign_id` | `Uuid` | **Required** campaign id |
-| `page` | `int` | **Optional** start from 0 |
-| `size` | `int` | **Optional** default 100 |
-
-**Description:** Retrieves generated videos associated with the provided campaign ID.
-
-If `page` and `size` are empty, it will return the first 100 generation results.
-
-**Response:** Generated Videos
-
-```
-[
-  {
-      id: Uuid,
-      user_id: String,
-      video_id: Uuid,
-      actor_id: Uuid,
-      video_instance_id: Uuid - Nullable,
-      campaign_id: Uuid - Nullable,
-      url: String - Nullable,
-      vimeo_url: String - Nullable,
-      thumbnail: String - Nullable,
-      gif: String - Nullable,
-      status: String,
-      checksum: int,
-      execution_name: String - Nullable, (If video generation failed, you can report using this execution id.)
-      row_index: int - Nullable, (It's the same number as the names value sequence that you request in the Generate Video API.)
-      text: String[] - Nullable, (["Don", "Apple"])
-      message: String - Nullable, 
-      created_at: Datetime,
-      updated_at: Datetime
-  }
-]
-```
-
-### Get generated video by generate ID
-
-```
-  GET https://studio.bhuman.ai/api/ai_studio/generated_video_by_id
-```
-
-| Parameter | Type     | Description                |
-| :-------- | :------- | :------------------------- |
-| `id` | `Uuid` | **Required** generation id |
-
-**Description:** Retrieves generated video associated with the provided generate ID that is returned by `try_sample`.
-
-**Response:** Generated Video
-
-```
+```json
 {
-      id: Uuid,
-      user_id: String,
-      video_id: Uuid,
-      actor_id: Uuid,
-      video_instance_id: Uuid - Nullable,
-      campaign_id: Uuid - Nullable,
-      url: String - Nullable,
-      vimeo_url: String - Nullable,
-      thumbnail: String - Nullable,
-      gif: String - Nullable,
-      status: String,
-      checksum: Int,
-      execution_name: String - Nullable, (If video generation failed, you can report using this execution id.)
-      row_index: Int - Nullable, (It's the same number as the names value sequence that you request in the Generate Video API.)
-      text: String[] - Nullable, (["Don", "Apple"])
-      message: String - Nullable, 
-      created_at: Datetime,
-      updated_at: Datetime
-}
-```
-
-### Get workspace
-
-```
-  GET https://user.bhuman.ai/api/workspace
-```
-
-| Parameter | Type     | Description                |
-| :-------- | :------- | :------------------------- |
-| `id` | `Uuid` | **Optional** workspace id |
-
-**Description:** Retrieves information about the authenticated user's workspace.
-
-**Response:** Workspace list
-
-```
-[
-  {
-    workspace_id: Uuid,          // workspace id
-    user_id: String,             // user id
-    name: String,                // workspace name
-    role: String,                // workspace role, owner, member
-    description: String,         // workspace description
-    created_at: Datetime,
-    updated_at: Datetime
-  }
-]
-```
-
-### Get products from the store
-
-```
-  GET https://store.bhuman.ai/api/store/product
-```
-
-**Description:** Retrieves available products from the store.
-
-**Response:** Product list
-
-```
-[
-  {
-    id: Uuid,
-    name: String,
-    category: int,
-    description: String - Nullable,
-    video_url: String - Nullable,
-    image_url: String - Nullable,
-    thumbnail: String - Nullable,
-    creator_id: String,
-    actor_id: Uuid,
-    length: int,
-    downloads: int,
-    ratings: float,
-    reviews: int,
-    tags: int[] - Nullable,
-    created_at: Datetime,
-  }
-]
-```
-
-### Use product
-
-```
-  POST https://store.bhuman.ai/api/store/product/use
-```
-
-| Parameter | Type     | Description                |
-| :-------- | :------- | :------------------------- |
-| `id` | `Uuid` | **Required** product id |
-| `workspace_id` | `Uuid` | **Required** workspace id |
-| `folder_id` | `Uuid` | **Optional** folder id |
-| `video_instance_id` | `Uuid` | **Optional** video instance id |
-
-**Description:** Uses a specific product from the store.
-
-If `folder_id` and `video_instance_id` are empty, it will create a new folder and video instance.
-
-If `video_instance_id` is present, `folder_id` can not be empty.
-
-If `folder_id` is present and `video_instance_id` is empty, it will create a new video instance.
-
-**Response:** 
-
-```
-{
-    video_instance_id: Uuid,
-    video_id: Uuid,
-    folder_id: Uuid,
-    product: {
-      id: Uuid,
-      name: String,
-      category: int,
-      description: String - Nullable,
-      video_url: String - Nullable,
-      image_url: String - Nullable,
-      thumbnail: String - Nullable,
-      creator_id: String,
-      actor_id: Uuid,
-      length: int,
-      downloads: int,
-      ratings: float,
-      reviews: int,
-      tags: int[] - Nullable,
-      created_at: Datetime,
-    },
-    segments: Uuid[],
-}
-```
-
-### Get categories and tags
-
-```
-  GET https://store.bhuman.ai/api/store/settings
-```
-
-**Description:** Get categories and tags from the store.
-
-**Response:**
-
-```
-{
-  "category": [
-    {
-      "id": int,
-      "name": String
-    }
-  ],
-  "tags": [
-    {
-      "id": int,
-      "name": String
-    }
+  "variables": ["name", "company", "address"],
+  "names": [
+    ["Graeham", "Acme Realty", "123 Main Street"],
+    ["Taylor", "Northstar Homes", "410 Oak Avenue"]
   ]
 }
 ```
 
-## Examples
+For a real estate lead workflow, common variables are:
 
-Here are some examples of how to use the API with Python and the `requests` library:
+- `name`
+- `address`
+- `city`
+- `neighborhood`
+- `agent_name`
+- `calendly_url`
+- `home_evaluation_url`
 
-```python
-import requests
-import base64
+## Dynamic backgrounds
 
-# Replace with your actual API key ID and secret
-api_key_id = "your_api_key_id"
-api_key_secret = "your_api_key_secret"
+Dynamic backgrounds let a generated video show a website, image, video, LinkedIn
+page, property page, landing page, or other URL behind or around the presenter.
 
-# Combine the API key ID and secret using a colon separator and encode it in base64
-api_key_combined = f"{api_key_id}:{api_key_secret}"
-api_key_encoded = base64.b64encode(api_key_combined.encode()).decode()
+`assets` is a row-by-row matrix. Each recipient row can provide one or more URLs
+used by the matching background segment.
 
-headers = {"Authorization": f"Basic {api_key_encoded}"}
+Example:
 
-# Get video instances by user
-url = "https://studio.bhuman.ai/api/ai_studio/video_instances?page=0&size=100"
-response = requests.get(url, headers=headers)
-print(response.json())
-
-# Get video instance by instance ID
-instance_id = "7d859e18-dc89-446f-9718-9533bb178a75"
-url = f"https://studio.bhuman.ai/api/ai_studio/video_instance?id={instance_id}"
-response = requests.get(url, headers=headers)
-print(response.json())
-
-# Generate video by instance ID
-url = "https://studio.bhuman.ai/api/ai_studio/try_sample"
-payload = {
-  "callback_url": "https://xxx.yyy.zzz?my_query_param1=aaa&my_query_param2=bbb",
-  "names": [["Don", "Apple"], ["James", "Google"]],
+```json
+{
   "variables": ["name", "company"],
-  "assets":[
-    // [asset url for 1st background, asset url for 2nd background]
-    ["https://www.apple.com", "https://www.video.com/don.mp4"],   // row for Don  
-    ["https://www.google.com", "https://www.video.com/james.mp4"] // row for James
+  "names": [
+    ["Don", "Apple"],
+    ["James", "Google"]
+  ],
+  "assets": [
+    ["https://www.apple.com", "https://example.com/don-property.mp4"],
+    ["https://www.google.com", "https://example.com/james-property.mp4"]
   ],
   "backgrounds": [
     {
-      "start": 0,                                       // from the start
-      "end": 3,                                         // to the 3rd second  
-      "kind": "site",                                   // show a website screenshot
-      "config": { "mode": "circle" }                    // with the template inside a circle
-   },
-   {
-      "start": 3,                                       // from the 3rd second  
-      "end": -1,                                        // to the end
-      "kind": "link",                                   // show a video or an image
-      "config": { "mode": "chroma", "color": "00FF00" } // using a green screen
+      "name": "website",
+      "start": 0,
+      "end": 3,
+      "kind": "site",
+      "config": {
+        "mode": "circle",
+        "position": "bottom-right",
+        "scale": 0.4
+      }
+    },
+    {
+      "name": "property-video",
+      "start": 3,
+      "end": -1,
+      "kind": "link",
+      "config": {
+        "mode": "chroma",
+        "color": "00FF00"
+      }
     }
-  ],
-  "video_instance_id": instance_id
+  ]
 }
-response = requests.post(url, json=payload, headers=headers)
-print(response.json())
-
-# Generate video by campaign ID
-campaign_id = "d744af70-cd3c-4a41-8bfe-89238f937a3b"
-url = "https://studio.bhuman.ai/api/ai_studio/pipeline/campaign"
-payload = {
-  "callback_url": "https://xxx.yyy.zzz?my_query_param1=aaa&my_query_param2=bbb",
-  "names": [["Don", "Apple"], ["James", "Google"]],
-  "variables": ["name", "company"],
-  "campaign_id": campaign_id
-}
-response = requests.post(url, json=payload, headers=headers)
-print(response.json())
-
-# Get generated videos by instance ID
-url = f"https://studio.bhuman.ai/api/ai_studio/generated_video_by_video_instance_id?video_instance_id={instance_id}&page=0&size=100"
-response = requests.get(url, headers=headers)
-print(response.json())
-
-# Get generated videos by campaign ID
-url = f"https://studio.bhuman.ai/api/ai_studio/generated_video_by_campaign_id?campaign_id={campaign_id}&page=0&size=100"
-response = requests.get(url, headers=headers)
-print(response.json())
-
-# Get workspace
-url = "https://user.bhuman.ai/api/workspace"
-response = requests.get(url, headers=headers)
-print(response.json())
-
-# Get products from store
-url = "https://store.bhuman.ai/api/store/product"
-response = requests.get(url, headers=headers)
-print(response.json())
-
-# Use product
-product_id = "example_product_id"
-workspace_id = "example_workspace_id"
-url = "https://store.bhuman.ai/api/store/product/use"
-payload = {
-  "folder_id": null,
-  "id": product_id,
-  "video_instance_id": null,
-  "workspace_id": workspace_id
-}
-response = requests.post(url, json=payload, headers=headers)
-print(response.json())
-
-# Get categories and tags from store
-url = "https://store.bhuman.ai/api/store/settings"
-response = requests.get(url, headers=headers)
-print(response.json())
 ```
 
-Replace `your_api_key_id` and `your_api_key_secret`  with your actual API id and secret, and replace `instance_id` and `campaign_id` with valid instance and campaign IDs.
+### Background
+
+| Field | Type | Required | Notes |
+| :-- | :-- | :-- | :-- |
+| `name` | `String` | No | Reference name for debugging |
+| `start` | `Number` | Yes | Segment start time in seconds |
+| `end` | `Number` | Yes | Segment end time in seconds. Use `-1` for the rest of the video |
+| `kind` | `String` | Yes | One of `link`, `site`, or `linkedin` |
+| `config` | `BackgroundConfig` | Yes | Display settings |
+
+### BackgroundConfig
+
+| Field | Type | Default | Notes |
+| :-- | :-- | :-- | :-- |
+| `mode` | `String` | Required | Background display mode: `basic`, `circle`, or `chroma` |
+| `scale` | `Number` | `0.4` | Scale factor for the presenter overlay |
+| `position` | `String` | `bottom-right` | Overlay position, such as `center`, `bottom`, `bottom-left`, or `top-right` |
+| `audio` | `Boolean` | `false` | Whether to use audio from the background asset |
+| `brightness` | `Number` | `1` | Brightness for the non-covered background area |
+| `color` | `String` | `00FF00` | Chroma key color in HEX when using `chroma` |
+| `similarity` | `Number` | `0.1` | Similarity level when using `chroma` |
+| `blend` | `Number` | `0.1` | Blend level when using `chroma` |
+
+## Poll generated videos
+
+If you do not provide `callback_url`, poll the generated video endpoints.
+
+### By video instance ID
+
+```http
+GET https://studio.bhuman.ai/api/ai_studio/generated_video_by_video_instance_id?video_instance_id={video_instance_id}&page=0&size=100
+```
+
+### By campaign ID
+
+```http
+GET https://studio.bhuman.ai/api/ai_studio/generated_video_by_campaign_id?campaign_id={campaign_id}&page=0&size=100
+```
+
+### By generation ID
+
+```http
+GET https://studio.bhuman.ai/api/ai_studio/generated_video_by_id?id={generation_id}
+```
+
+Generated video response fields:
+
+| Field | Type | Notes |
+| :-- | :-- | :-- |
+| `id` | `Uuid` | Generation ID |
+| `user_id` | `String` | User ID |
+| `video_id` | `Uuid` | Video ID |
+| `actor_id` | `Uuid` | Actor ID |
+| `video_instance_id` | `Uuid` | Present when generated from an instance |
+| `campaign_id` | `Uuid` | Present when generated from a campaign |
+| `url` | `String` | Downloadable MP4 URL |
+| `vimeo_url` | `String` | Hosted playback URL |
+| `thumbnail` | `String` | Thumbnail URL |
+| `gif` | `String` | GIF URL |
+| `status` | `String` | Generation status |
+| `execution_name` | `String` | Execution ID to share with support if generation fails |
+| `row_index` | `Int` | Row index from the submitted `names` payload |
+| `text` | `String[]` | Submitted variable values for that row |
+| `message` | `String` | Failure or status message when available |
+| `created_at` | `Datetime` | Creation timestamp |
+| `updated_at` | `Datetime` | Update timestamp |
+
+## Video instances
+
+### List video instances
+
+```http
+GET https://studio.bhuman.ai/api/ai_studio/video_instances?page=0&size=100
+```
+
+Parameters:
+
+| Field | Type | Required | Notes |
+| :-- | :-- | :-- | :-- |
+| `page` | `Int` | Yes | Starts at `0` |
+| `size` | `Int` | Yes | Maximum `100` |
+
+### Get one video instance
+
+```http
+GET https://studio.bhuman.ai/api/ai_studio/video_instance?id={video_instance_id}
+```
+
+## Workspace
+
+```http
+GET https://user.bhuman.ai/api/workspace
+```
+
+Optional query parameter:
+
+| Field | Type | Required | Notes |
+| :-- | :-- | :-- | :-- |
+| `id` | `Uuid` | No | Workspace ID |
+
+## Store products
+
+### List products
+
+```http
+GET https://store.bhuman.ai/api/store/product
+```
+
+### Use a product
+
+```http
+POST https://store.bhuman.ai/api/store/product/use
+```
+
+Request body:
+
+| Field | Type | Required | Notes |
+| :-- | :-- | :-- | :-- |
+| `id` | `Uuid` | Yes | Product ID |
+| `workspace_id` | `Uuid` | Yes | Workspace ID |
+| `folder_id` | `Uuid` | No | Existing folder ID |
+| `video_instance_id` | `Uuid` | No | Existing video instance ID |
+
+If `folder_id` and `video_instance_id` are omitted, BHuman creates a new folder
+and video instance.
+
+If `video_instance_id` is provided, `folder_id` must also be provided.
+
+### Categories and tags
+
+```http
+GET https://store.bhuman.ai/api/store/settings
+```
+
+## PHP SDK
+
+Community PHP SDK:
+
+- https://github.com/henryreith/BHuman-PHP-SDK
 
 ## Support
 
-If you have any questions or need further assistance, please don't hesitate to contact our support team at help@bhuman.ai. We're here to help!
+For API support, contact help@bhuman.ai.
+
+Helpful links:
+
+- API docs: https://www.bhuman.ai/docs/api
+- Help center: https://help.bhuman.ai
