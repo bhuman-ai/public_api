@@ -17,9 +17,9 @@ The live schema is `BHuman AI Studio API` version `0.2.0`.
 
 ## Current product model
 
-Older BHuman help articles and videos may mention "Easy Mode" and "Advanced
-Mode." Those terms describe an older product flow and should not be used for new
-setup.
+Older BHuman articles and videos may use legacy setup terminology. New work
+should use AI Studio templates, campaigns, variables, Speakeasy imports, API
+generation, callbacks, and generated assets.
 
 The current model is:
 
