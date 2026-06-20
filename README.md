@@ -1,11 +1,14 @@
 # BHuman API Docs
 
-This is the current public guide for using the BHuman API with AI Studio templates,
-campaigns, generated videos, and store products.
+Last updated: June 2026.
 
-Canonical API docs also live on the BHuman website:
+This repository is the public GitHub endpoint reference for the BHuman API. The
+canonical, latest docs live on the BHuman website:
 
 - https://www.bhuman.ai/docs/api
+
+Use the BHuman API with AI Studio templates, campaigns, generated videos, and
+store products.
 
 ## Important note about older docs
 
