@@ -17,9 +17,8 @@ The live schema is `BHuman AI Studio API` version `0.2.0`.
 
 ## Current product model
 
-Older BHuman articles and videos may use legacy setup terminology. New work
-should use AI Studio templates, campaigns, variables, Speakeasy imports, API
-generation, callbacks, and generated assets.
+Current BHuman API integrations should use AI Studio templates, campaigns,
+variables, Speakeasy imports, API generation, callbacks, and generated assets.
 
 The current model is:
 
