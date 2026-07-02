@@ -451,6 +451,22 @@ Current behavior:
 - Render latency depends on template length, queue load, lip sync, background
   processing, and other campaign settings. Do not treat one render as an SLA.
 
+## Compliance and privacy
+
+If a generated video needs an AI disclosure, put the disclosure line in the AI
+Studio template as fixed copy rather than as a recipient variable. API requests
+cannot remove fixed template copy during generation, so control who can edit the
+production template or campaign to keep the disclosure from being accidentally
+changed.
+
+Send only the recipient fields required for the video, such as first name,
+address, listing image URL, and CTA URL. Keep API keys and recipient data
+server-side. Do not place secrets or private recipient data in browser-side
+JavaScript.
+
+For retention, DPA, and account-specific privacy requirements, coordinate with
+BHuman support or your account team before launch.
+
 ## Speakeasy imports
 
 Use Speakeasy to generate the presenter and voice, then import that project into
