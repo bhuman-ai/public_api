@@ -1,6 +1,6 @@
 # BHuman AI Studio API Docs
 
-Last updated: June 2026.
+Last updated: July 2026.
 
 This repository is the public GitHub endpoint reference for the BHuman AI Studio
 API. The richer documentation lives on the BHuman website:
@@ -133,7 +133,6 @@ Request body:
 | `assets` | `String[][]` | No | Asset URL rows used by dynamic backgrounds |
 | `backgrounds` | `Background[]` | No | Dynamic background segments |
 | `enable_lipsync` | `Boolean` | No | Enable lip sync when supported by the template |
-| `enable_subtitles` | `Boolean` | No | Request subtitles when supported by the template |
 
 Example:
 
@@ -245,13 +244,28 @@ Dynamic backgrounds let a generated video show a website, image, video,
 LinkedIn page, product page, landing page, or other URL behind or around the
 presenter.
 
-`assets` is a row-by-row matrix. Each recipient row can provide one or more URLs
-used by the matching background segment.
+Dynamic backgrounds are supported through the campaign generation API. Send
+`assets` and `backgrounds` in the same `/pipeline/campaign` request that starts
+the render.
+
+`assets` is a row-by-row matrix. Each recipient row must line up with the same
+row in `names`. Each asset column must line up with the same item in
+`backgrounds`.
+
+Common `kind` values:
+
+- `link`: use a direct image or video URL.
+- `site`: capture and use a website URL.
+- `linkedin`: capture and use a LinkedIn page URL.
+
+Blank asset cells are skipped. URLs should use `https://` or `http://`; if no
+scheme is provided, BHuman prepends `https://`.
 
 Example:
 
 ```json
 {
+  "campaign_id": "YOUR_CAMPAIGN_ID",
   "variables": ["first_name", "company"],
   "names": [
     ["Alex", "ExampleCo"],
@@ -316,12 +330,60 @@ If `callback_url` is provided, BHuman can send completion details for generated
 videos. Store the generation ID so callbacks and polling responses can be
 reconciled.
 
-Completion fields:
+The campaign callback body uses `video_url` for the hosted/share page URL and
+`url` for the MP4 URL. Polling responses use `share_url` for the hosted/share
+page URL and `url` for the MP4 URL. For compatibility, receivers should accept
+both `video_url` and `share_url` as the hosted/share page field.
+
+Callback fields:
 
 | Field | Type | Notes |
 | :-- | :-- | :-- |
 | `id` | `String` | Generation ID |
-| `status` | `String` | Processing, succeeded, failed, or related render state |
+| `campaign_id` | `String` | Campaign ID for campaign renders |
+| `status` | `String` | `succeeded`, `failed`, or another render state |
+| `video_url` | `String` | Hosted video page or share destination when available |
+| `url` | `String` | Downloadable MP4 URL when available |
+| `thumbnail` | `String` | Generated thumbnail image URL when available |
+| `gif` | `String` | Generated GIF preview URL when available |
+| `campaign_result_id` | `Int` | Campaign result row identifier when provided |
+
+Successful callback example:
+
+```json
+{
+  "id": "c10ee155-6202-4cec-9a40-dde536e2ab4e",
+  "campaign_id": "YOUR_CAMPAIGN_ID",
+  "status": "succeeded",
+  "video_url": "https://videos.bhuman.ai/video/...",
+  "url": "https://assets.bhuman.ai/generated-video.mp4",
+  "thumbnail": "https://assets.bhuman.ai/thumb.jpg",
+  "gif": "https://assets.bhuman.ai/preview.gif",
+  "campaign_result_id": null
+}
+```
+
+Failed callback example:
+
+```json
+{
+  "id": "c10ee155-6202-4cec-9a40-dde536e2ab4e",
+  "campaign_id": "YOUR_CAMPAIGN_ID",
+  "status": "failed",
+  "video_url": "",
+  "url": "",
+  "thumbnail": "",
+  "gif": "",
+  "campaign_result_id": null
+}
+```
+
+Polling response fields:
+
+| Field | Type | Notes |
+| :-- | :-- | :-- |
+| `id` | `String` | Generation ID |
+| `status` | `String` | `preparing`, `queued`, `processing`, `succeeded`, `failed`, or another render state |
 | `share_url` | `String` | Hosted video page or share destination when available |
 | `url` | `String` | Downloadable MP4 URL |
 | `thumbnail` | `String` | Generated thumbnail image URL |
@@ -330,7 +392,7 @@ Completion fields:
 | `execution_name` | `String` | Pipeline execution identifier when available |
 | `row_index` | `Int` | Recipient row index when available |
 
-Example:
+Polling success example:
 
 ```json
 {
@@ -350,6 +412,44 @@ GET https://studio.bhuman.ai/api/ai_studio/generated_video_by_video_instance_id?
 GET https://studio.bhuman.ai/api/ai_studio/generated_video_by_campaign_id?campaign_id={campaign_id}&page=0&size=100
 GET https://studio.bhuman.ai/api/ai_studio/generated_video_by_id?id={generation_id}
 ```
+
+## Validation, errors, and support-safe messages
+
+API requests can fail before a render is started.
+
+Common validation responses:
+
+| HTTP status | Meaning |
+| :-- | :-- |
+| `400` | Valid JSON, but the payload is not usable for the campaign. For example, variable count does not match recipient values. |
+| `401` | Missing or invalid authorization. |
+| `422` | Request body or query shape could not be parsed. For example, a required UUID is malformed or a required field is missing. |
+
+Renders can also fail after an accepted response. In that case, the generation
+status becomes `failed` and a callback may be delivered with empty media fields.
+
+Do not show raw render failure messages to recipients or customers. In your
+product, show a support-safe message and log the generation ID for support:
+
+```text
+Render failed. Please contact BHuman support with code BH-RENDER-FAILED and generation ID {generation_id}.
+```
+
+## Scale and testing
+
+Generation is asynchronous. The API returns generation IDs first; media URLs are
+available later through callbacks or polling.
+
+Current behavior:
+
+- Use a small 2-3 row test before a large batch.
+- A single campaign request supports up to 2,000 recipient rows.
+- 50+ concurrent or near-concurrent generations should be tested against the
+  exact campaign/template before launch.
+- No public sandbox or fixed per-minute rate limit is documented. Use a real
+  account with a test campaign and non-production recipients for evaluation.
+- Render latency depends on template length, queue load, lip sync, background
+  processing, and other campaign settings. Do not treat one render as an SLA.
 
 ## Speakeasy imports
 
