@@ -114,6 +114,19 @@ For exact optional fields and additional operations, use Swagger:
 
 - https://studio.bhuman.ai/swagger-ui/
 
+## Generation modes
+
+`generation_mode` controls how BHuman creates the personalized video:
+
+| Value | Product option | Behavior |
+| :-- | :-- | :-- |
+| `keep_original` | Keep Original | Default product choice. Changes the personalized sections while preserving the rest of the original video. Supports up to 100 personalized sections, with each section lasting no more than 10 seconds. |
+| `full_script` | Smoothest Result | Regenerates the full video for the smoothest overall motion and transitions. Set `infinitetalk_quality` to `standard` for 480p at 1x credits or `premium` for 720p at 2x credits. |
+
+Public generation endpoints use `keep_original` when `generation_mode` is
+missing or blank. Send `generation_mode` explicitly so the intended behavior
+remains clear and stable.
+
 ## Generate videos from a campaign
 
 Use this endpoint when your workflow is based on an AI Studio campaign.
@@ -133,6 +146,8 @@ Request body:
 | `assets` | `String[][]` | No | Asset URL rows used by dynamic backgrounds |
 | `backgrounds` | `Background[]` | No | Dynamic background segments |
 | `enable_lipsync` | `Boolean` | No | Enable lip sync when supported by the template |
+| `generation_mode` | `String` | No | Use `keep_original` for Keep Original or `full_script` for Smoothest Result. API clients should send this field explicitly. |
+| `infinitetalk_quality` | `String` | No | Smoothest Result only. Use `standard` for 480p at 1x credits or `premium` for 720p at 2x credits. This field does not affect Keep Original. |
 
 Example:
 
@@ -147,6 +162,7 @@ curl -X POST "https://studio.bhuman.ai/api/ai_studio/pipeline/campaign" \
       ["Alex", "ExampleCo", "https://example.com/start"],
       ["Jordan", "Sample Labs", "https://example.com/book"]
     ],
+    "generation_mode": "keep_original",
     "callback_url": "https://yourapp.com/bhuman/callback"
   }'
 ```
@@ -162,6 +178,36 @@ Accepted response:
 }
 ```
 
+## Zapier and automation payloads
+
+Use the Zapier endpoint for structured automation requests. It accepts the same
+ordered `variables` and `names` shape as the campaign endpoint.
+
+```http
+POST https://studio.bhuman.ai/api/ai_studio/pipeline/zapier
+```
+
+Example:
+
+```bash
+curl -X POST "https://studio.bhuman.ai/api/ai_studio/pipeline/zapier" \
+  -H "Authorization: Basic $BHUMAN_BASIC_AUTH" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "campaign_id": "YOUR_CAMPAIGN_ID",
+    "variables": ["first_name", "company"],
+    "names": [
+      ["Erada", "BrushandChemistry"]
+    ],
+    "generation_mode": "keep_original",
+    "callback_url": "https://yourapp.com/bhuman/callback"
+  }'
+```
+
+If this endpoint receives no `generation_mode`, it uses `keep_original`.
+Including the field is still recommended because it makes the automation's
+behavior explicit.
+
 ## Pabbly-style payload
 
 Use the Pabbly endpoint when a webhook builder is easier with object-style
@@ -176,6 +222,7 @@ Example:
 ```json
 {
   "campaign_id": "YOUR_CAMPAIGN_ID",
+  "generation_mode": "keep_original",
   "variables": {
     "first_name": "Alex",
     "company": "ExampleCo",
@@ -184,6 +231,11 @@ Example:
   "callback_url": "https://yourapp.com/bhuman/callback"
 }
 ```
+
+Pabbly accepts `generation_mode` as `keep_original` or `full_script` and uses
+`keep_original` when the field is missing or blank. For `full_script`, optional
+`infinitetalk_quality` is `standard` (480p, 1x credits) or `premium` (720p, 2x
+credits). Variable object values must contain replacement text only.
 
 ## Generate videos from a video instance
 
@@ -207,6 +259,7 @@ curl -X POST "https://studio.bhuman.ai/api/ai_studio/try_sample" \
       ["Alex", "ExampleCo"],
       ["Jordan", "Sample Labs"]
     ],
+    "generation_mode": "keep_original",
     "callback_url": "https://yourapp.com/bhuman/callback"
   }'
 ```
@@ -214,6 +267,9 @@ curl -X POST "https://studio.bhuman.ai/api/ai_studio/try_sample" \
 ## Variables and recipient rows
 
 `variables` defines the column order. `names` supplies the recipient values.
+Every item in `names` must contain only the text replacing its matching
+variable. Do not include fixed words that already appear around the variable in
+the template.
 
 Example:
 
@@ -226,6 +282,27 @@ Example:
   ]
 }
 ```
+
+For a template that says `Hi {{name}}, welcome to BrushandChemistry.`, send:
+
+```json
+{
+  "variables": ["name"],
+  "names": [["Erada"]]
+}
+```
+
+Do not send the surrounding sentence as the value:
+
+```json
+{
+  "variables": ["name"],
+  "names": [["Hi Erada, welcome to BrushandChemistry"]]
+}
+```
+
+The incorrect value would be inserted into the existing sentence and could
+produce duplicated words.
 
 Common variables:
 
@@ -271,6 +348,7 @@ Example:
     ["Alex", "ExampleCo"],
     ["Jordan", "Sample Labs"]
   ],
+  "generation_mode": "keep_original",
   "assets": [
     ["https://example.com/product", "https://example.com/alex-demo.mp4"],
     ["https://example.com/pricing", "https://example.com/jordan-demo.mp4"]
@@ -444,6 +522,8 @@ Current behavior:
 
 - Use a small 2-3 row test before a large batch.
 - A single campaign request supports up to 2,000 recipient rows.
+- Keep Original supports up to 100 personalized sections in a template, and
+  each section must be 10 seconds or shorter.
 - 50+ concurrent or near-concurrent generations should be tested against the
   exact campaign/template before launch.
 - No public sandbox or fixed per-minute rate limit is documented. Use a real
@@ -517,7 +597,10 @@ GET https://studio.bhuman.ai/api/ai_studio/webhook
 
 - Use HTTPS callback URLs that can accept repeated delivery attempts.
 - Store generation IDs so callbacks and polling responses can be reconciled.
+- Pin `generation_mode` explicitly in API and automation requests.
 - Keep variables stable after a campaign is wired into a production workflow.
+- Send only replacement text for each value in `names`; do not repeat fixed
+  template wording.
 - Send row-specific assets in the same order as recipient rows.
 - Treat generated media URLs as outputs from an async render job, not as
   immediate inline responses.
