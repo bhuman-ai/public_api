@@ -27,7 +27,8 @@ The current model is:
 3. Generate personalized videos through an AI Studio campaign, integration, or
    API request.
 4. Use callback URLs or polling endpoints to collect share links, MP4 files,
-   thumbnails, GIF previews, status, and failure details.
+   thumbnails, GIF previews, optional WhatsApp-ready MP4 files, status, and
+   failure details.
 
 Personalized videos can start from either source:
 
@@ -346,6 +347,7 @@ Callback fields:
 | `url` | `String` | Downloadable MP4 URL when available |
 | `thumbnail` | `String` | Generated thumbnail image URL when available |
 | `gif` | `String` | Generated GIF preview URL when available |
+| `whatsapp_video_url` | `String` | Optional WhatsApp-ready MP4 URL. Omitted while unavailable |
 | `campaign_result_id` | `Int` | Campaign result row identifier when provided |
 
 Successful callback example:
@@ -388,6 +390,7 @@ Polling response fields:
 | `url` | `String` | Downloadable MP4 URL |
 | `thumbnail` | `String` | Generated thumbnail image URL |
 | `gif` | `String` | Generated GIF preview URL |
+| `whatsapp_video_url` | `String` | Optional WhatsApp-ready MP4 URL after the derivative succeeds |
 | `message` | `String` | Failure or processing detail when available |
 | `execution_name` | `String` | Pipeline execution identifier when available |
 | `row_index` | `Int` | Recipient row index when available |
@@ -412,6 +415,46 @@ GET https://studio.bhuman.ai/api/ai_studio/generated_video_by_video_instance_id?
 GET https://studio.bhuman.ai/api/ai_studio/generated_video_by_campaign_id?campaign_id={campaign_id}&page=0&size=100
 GET https://studio.bhuman.ai/api/ai_studio/generated_video_by_id?id={generation_id}
 ```
+
+## WhatsApp-ready video callbacks
+
+Enable WhatsApp video generation in the AI Studio campaign settings before
+calling the campaign generation endpoint. This is a saved campaign setting, not
+a field in the generation request.
+
+BHuman completes the main video first and creates the smaller WhatsApp-ready MP4
+in the background. The normal completion callback is sent immediately after the
+main render succeeds. It usually omits `whatsapp_video_url` because the
+derivative is not ready yet.
+
+After the derivative succeeds, the same callback URL receives a distinct event:
+
+```json
+{
+  "event": "whatsapp.ready",
+  "id": "c10ee155-6202-4cec-9a40-dde536e2ab4e",
+  "campaign_id": "YOUR_CAMPAIGN_ID",
+  "whatsapp_video_url": "https://assets.bhuman.ai/generated-video-whatsapp.mp4"
+}
+```
+
+Integration rules:
+
+- Continue the main-video workflow when `status = succeeded`. Do not require
+  `whatsapp_video_url` on that route.
+- Route `event = whatsapp.ready` separately and join it to the existing record
+  with `id`.
+- Store `whatsapp_video_url` from the readiness event or retrieve it later from
+  a generated-video polling endpoint.
+- Use event type plus `id` for idempotency. The main completion and readiness
+  events intentionally share the same generation ID.
+- If derivative generation fails, BHuman keeps the main video successful and
+  does not send `whatsapp.ready`.
+
+For Make and GoHighLevel, keep the existing main-completion route unchanged.
+Add a second route filtered by `event = whatsapp.ready`, find the generated
+video by `id`, and map `whatsapp_video_url` from that later event. Do not treat a
+missing readiness event as a failed main video.
 
 ## Validation, errors, and support-safe messages
 
@@ -517,6 +560,8 @@ GET https://studio.bhuman.ai/api/ai_studio/webhook
 
 - Use HTTPS callback URLs that can accept repeated delivery attempts.
 - Store generation IDs so callbacks and polling responses can be reconciled.
+- When WhatsApp video generation is enabled, process main completion and
+  `whatsapp.ready` as separate events.
 - Keep variables stable after a campaign is wired into a production workflow.
 - Send row-specific assets in the same order as recipient rows.
 - Treat generated media URLs as outputs from an async render job, not as
