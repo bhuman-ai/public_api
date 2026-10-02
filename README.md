@@ -7,7 +7,11 @@ reconciliation still require end-to-end qualification. This is not a launch
 certification.
 
 Use the public [API guide](https://www.bhuman.ai/docs/api) for customer setup.
-The developer hub and hosted MCP guide are being prepared for publication.
+Start at the public [developer hub](https://www.bhuman.ai/docs/developers).
+For assistants, follow [hosted MCP setup](https://www.bhuman.ai/docs/mcp) and the
+[Speakeasy](https://www.bhuman.ai/docs/mcp/speakeasy),
+[Personalized Video](https://www.bhuman.ai/docs/mcp/personalized-video) or
+[LeadR](https://www.bhuman.ai/docs/mcp/leadr) quickstart.
 Customer setup requires no private repository or local MCP server.
 
 ## Choose the correct integration
@@ -15,7 +19,8 @@ Customer setup requires no private repository or local MCP server.
 - **AI Studio REST:** personalize an existing template/campaign with recipient
   values. Prepare the source video and variables in the BHuman app first.
 - **BHuman hosted MCP:** let Claude Code or Cursor create a Speakeasy presenter
-  video; separate `studio_*` tools operate AI Studio workflows. The endpoint is
+  video; `studio_*` tools personalize AI Studio videos and `leadr_*` tools operate
+  eligible LeadR campaigns. Each product has its own plans and approvals. The endpoint is
   `https://speakeasy.bhuman.ai/api/mcp`.
 
 A Speakeasy project is not an AI Studio template. Finished Speakeasy footage can
