@@ -1,579 +1,157 @@
-# BHuman AI Studio API Docs
+# BHuman AI Studio REST API
 
-Last updated: July 2026.
+Updated October 2, 2026. **Integration qualification is in progress.** Deployed
+schemas and source were reviewed, and logged-out/invalid-credential checks pass.
+Fresh ordinary-account generation, playable output, quota failures and retry/charge
+reconciliation still require end-to-end qualification. This is not a launch
+certification.
 
-This repository is the public GitHub endpoint reference for the BHuman AI Studio
-API. The richer documentation lives on the BHuman website:
+Use the public [API guide](https://www.bhuman.ai/docs/api) for customer setup.
+The developer hub and hosted MCP guide are being prepared for publication.
+Customer setup requires no private repository or local MCP server.
 
-- https://www.bhuman.ai/docs
-- https://www.bhuman.ai/docs/api
+## Choose the correct integration
 
-The generated Swagger UI and OpenAPI schema are available here:
+- **AI Studio REST:** personalize an existing template/campaign with recipient
+  values. Prepare the source video and variables in the BHuman app first.
+- **BHuman hosted MCP:** let Claude Code or Cursor create a Speakeasy presenter
+  video; separate `studio_*` tools operate AI Studio workflows. The endpoint is
+  `https://speakeasy.bhuman.ai/api/mcp`.
 
-- https://studio.bhuman.ai/swagger-ui/
-- https://studio.bhuman.ai/swagger-ui/openapi.json
+A Speakeasy project is not an AI Studio template. Finished Speakeasy footage can
+be imported in the app and configured for Studio personalization.
 
-The live schema is `BHuman AI Studio API` version `0.2.0`.
+## Prerequisites and costs
 
-## Current product model
+Create an account at [BHuman](https://app.bhuman.ai), use owned media and a campaign
+you can access, and review **Settings → Plan & usage** before generating.
+Account/product entitlements and credits apply to API requests. Free, Growth,
+Scale and Ultimate are account plans, not an API quota bypass; legacy/promotional
+balances can have product restrictions. Confirm restricted access with support.
 
-Current BHuman API integrations should use AI Studio templates, campaigns,
-variables, Speakeasy imports, API generation, callbacks, and generated assets.
+Generation uses production credits. Review the exact campaign estimate; do not
+assume every quality/mode costs the same. No separate free API sandbox, fixed
+public per-minute REST limit or guaranteed rendering SLA is documented.
 
-The current model is:
+## REST authentication
 
-1. Create or import an AI Studio video template.
-2. Define the variables that should change for each recipient.
-3. Generate personalized videos through an AI Studio campaign, integration, or
-   API request.
-4. Use callback URLs or polling endpoints to collect share links, MP4 files,
-   thumbnails, GIF previews, optional WhatsApp-ready MP4 files, status, and
-   failure details.
+In **Settings → API Keys → Generate new key**, obtain your **Client ID** and
+**Client Secret**. These are HTTP Basic username/password credentials for the
+integration generation routes below. Keep them in a private server environment or
+secret manager. Do not expose credentials in browser code, logs or screenshots.
 
-Personalized videos can start from either source:
+An **MCP Key** beginning `bhm_mcp_` is a separate bearer credential. Generate it
+with **Generate MCP key**. MCP keys expire after 90 days; replacement revokes older
+keys for the account. This expiry policy does not apply to REST credentials.
 
-1. **Recorded or uploaded base video in AI Studio**
-   - Record or upload the presenter video.
-   - Mark variables such as `first_name`, `company`, `product_name`, or
-     `cta_url`.
-   - Trigger personalized renders through a campaign or API request.
+## Generate one personalized video
 
-2. **Generated presenter video from Speakeasy**
-   - Generate the presenter and voice in Speakeasy.
-   - Import the finished project into AI Studio.
-   - Mark variables in AI Studio.
-   - Trigger personalized renders through campaign or API calls.
+Create a ready campaign with one variable named `first_name`. Save this as
+`campaign.json`, replacing the placeholder with your owned campaign UUID:
 
-## Authentication
+```json
+{
+  "campaign_id": "00000000-0000-0000-0000-000000000000",
+  "generation_mode": "keep_original",
+  "variables": ["first_name"],
+  "names": [["Alex"]]
+}
+```
 
-BHuman API keys use Basic Authentication.
-
-Create an API key in BHuman:
-
-1. Sign in to BHuman.
-2. Open **Settings**.
-3. Open **API keys**.
-4. Generate a key.
-5. Store the key ID and secret securely.
-
-Example header:
+Set `BHUMAN_CLIENT_ID` and `BHUMAN_CLIENT_SECRET` privately, review the credit
+charge, then submit **once**:
 
 ```bash
-Authorization: Basic BASE64_ENCODED_KEY_ID_AND_SECRET
+curl --fail-with-body --request POST \
+  'https://studio.bhuman.ai/api/ai_studio/pipeline/campaign' \
+  --user "$BHUMAN_CLIENT_ID:$BHUMAN_CLIENT_SECRET" \
+  --header 'Content-Type: application/json' \
+  --data @campaign.json
 ```
 
-Example cURL setup:
+Acceptance returns `{"code":200,"result":["GENERATION_UUID"]}`. Save the IDs.
+Rendering is asynchronous. Each `names` row must match the ordered `variables`
+array; values replace only the variable, not its surrounding sentence. A batch
+accepts at most 2,000 rows; start with one.
+
+`generation_mode` accepts `keep_original` (the default when missing/blank) and
+`full_script`. Send it explicitly. These are Studio modes, independent of
+Speakeasy quality choices. Keep Original supports up to 100 personalized sections,
+each at most 10 seconds. Optional `assets`/`backgrounds` must align with recipient
+rows and background columns; omit them from the first request.
+
+## Track and retrieve output
+
+Poll an accepted individual ID about every 10 seconds with a bounded deadline:
 
 ```bash
-export BHUMAN_API_KEY_ID="your_api_key_id"
-export BHUMAN_API_KEY_SECRET="your_api_key_secret"
-
-export BHUMAN_BASIC_AUTH=$(printf "%s:%s" "$BHUMAN_API_KEY_ID" "$BHUMAN_API_KEY_SECRET" | base64)
+curl --fail-with-body --get \
+  'https://studio.bhuman.ai/api/ai_studio/generated_video_by_id' \
+  --data-urlencode 'id=YOUR_RETURNED_GENERATION_UUID'
 ```
 
-Python helper:
-
-```python
-import base64
-
-api_key_id = "your_api_key_id"
-api_key_secret = "your_api_key_secret"
-
-token = base64.b64encode(f"{api_key_id}:{api_key_secret}".encode()).decode()
-headers = {"Authorization": f"Basic {token}"}
-```
-
-## Endpoint summary
-
-All AI Studio API endpoints below use this host:
-
-```text
-https://studio.bhuman.ai
-```
-
-| Method | Endpoint | Purpose |
-| :-- | :-- | :-- |
-| `POST` | `/api/ai_studio/pipeline/campaign` | Generate campaign videos from ordered variables and recipient rows |
-| `POST` | `/api/ai_studio/pipeline/zapier` | Generate videos from the structured automation payload shape |
-| `POST` | `/api/ai_studio/pipeline/pabbly` | Generate videos from a simple object-style webhook payload |
-| `POST` | `/api/ai_studio/pipeline/leadr` | Generate videos from Leadr pipeline data |
-| `POST` | `/api/ai_studio/try_sample` | Generate videos directly from a video instance ID |
-| `GET` | `/api/ai_studio/video_instances` | List AI Studio video instances |
-| `GET` | `/api/ai_studio/video_instance?id={video_instance_id}` | Fetch one video instance |
-| `GET` | `/api/ai_studio/campaigns` | List campaigns |
-| `GET` | `/api/ai_studio/campaign?id={campaign_id}` | Fetch one campaign |
-| `GET` | `/api/ai_studio/generated_video_by_video_instance_id?video_instance_id={video_instance_id}` | List generated videos for an instance |
-| `GET` | `/api/ai_studio/generated_video_by_campaign_id?campaign_id={campaign_id}` | List generated videos for a campaign |
-| `GET` | `/api/ai_studio/generated_video_by_id?id={generation_id}` | Fetch one generated video |
-| `GET` | `/api/ai_studio/speakeasy_projects` | List Speakeasy projects available for import |
-| `POST` | `/api/ai_studio/speakeasy_projects/import` | Import a Speakeasy project into AI Studio |
-| `GET` | `/api/ai_studio/webhook` | List saved campaign webhooks |
-| `POST` | `/api/ai_studio/webhook` | Create a saved campaign webhook |
-| `POST` | `/api/ai_studio/videos_preview` | Create a video preview request |
-
-For exact optional fields and additional operations, use Swagger:
-
-- https://studio.bhuman.ai/swagger-ui/
-
-## Generate videos from a campaign
-
-Use this endpoint when your workflow is based on an AI Studio campaign.
-
-```http
-POST https://studio.bhuman.ai/api/ai_studio/pipeline/campaign
-```
-
-Request body:
-
-| Field | Type | Required | Notes |
-| :-- | :-- | :-- | :-- |
-| `campaign_id` | `String` | Yes | Campaign ID |
-| `variables` | `String[]` | Yes | Variable names in the same order as each row in `names` |
-| `names` | `String[][]` | Yes | Recipient rows. Each row maps to `variables` by position |
-| `callback_url` | `String` | No | BHuman sends completion details for generated videos |
-| `assets` | `String[][]` | No | Asset URL rows used by dynamic backgrounds |
-| `backgrounds` | `Background[]` | No | Dynamic background segments |
-| `enable_lipsync` | `Boolean` | No | Enable lip sync when supported by the template |
-
-Example:
-
-```bash
-curl -X POST "https://studio.bhuman.ai/api/ai_studio/pipeline/campaign" \
-  -H "Authorization: Basic $BHUMAN_BASIC_AUTH" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "campaign_id": "YOUR_CAMPAIGN_ID",
-    "variables": ["first_name", "company", "cta_url"],
-    "names": [
-      ["Alex", "ExampleCo", "https://example.com/start"],
-      ["Jordan", "Sample Labs", "https://example.com/book"]
-    ],
-    "callback_url": "https://yourapp.com/bhuman/callback"
-  }'
-```
-
-Accepted response:
-
-```json
-{
-  "code": 200,
-  "result": [
-    "c10ee155-6202-4cec-9a40-dde536e2ab4e"
-  ]
-}
-```
-
-## Pabbly-style payload
-
-Use the Pabbly endpoint when a webhook builder is easier with object-style
-variables instead of ordered row arrays.
-
-```http
-POST https://studio.bhuman.ai/api/ai_studio/pipeline/pabbly
-```
-
-Example:
-
-```json
-{
-  "campaign_id": "YOUR_CAMPAIGN_ID",
-  "variables": {
-    "first_name": "Alex",
-    "company": "ExampleCo",
-    "cta_url": "https://example.com/start"
-  },
-  "callback_url": "https://yourapp.com/bhuman/callback"
-}
-```
-
-## Generate videos from a video instance
-
-Use this endpoint when your workflow targets a specific AI Studio video
-instance instead of a campaign.
-
-```http
-POST https://studio.bhuman.ai/api/ai_studio/try_sample
-```
-
-Example:
-
-```bash
-curl -X POST "https://studio.bhuman.ai/api/ai_studio/try_sample" \
-  -H "Authorization: Basic $BHUMAN_BASIC_AUTH" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "video_instance_id": "YOUR_VIDEO_INSTANCE_ID",
-    "variables": ["first_name", "company"],
-    "names": [
-      ["Alex", "ExampleCo"],
-      ["Jordan", "Sample Labs"]
-    ],
-    "callback_url": "https://yourapp.com/bhuman/callback"
-  }'
-```
-
-## Variables and recipient rows
-
-`variables` defines the column order. `names` supplies the recipient values.
-
-Example:
-
-```json
-{
-  "variables": ["first_name", "company", "cta_url"],
-  "names": [
-    ["Alex", "ExampleCo", "https://example.com/start"],
-    ["Jordan", "Sample Labs", "https://example.com/book"]
-  ]
-}
-```
-
-Common variables:
-
-- `first_name`
-- `company`
-- `product_name`
-- `plan_name`
-- `cta_url`
-- `booking_url`
-- `renewal_date`
-- `asset_url`
-
-## Dynamic backgrounds
-
-Dynamic backgrounds let a generated video show a website, image, video,
-LinkedIn page, product page, landing page, or other URL behind or around the
-presenter.
-
-Dynamic backgrounds are supported through the campaign generation API. Send
-`assets` and `backgrounds` in the same `/pipeline/campaign` request that starts
-the render.
-
-`assets` is a row-by-row matrix. Each recipient row must line up with the same
-row in `names`. Each asset column must line up with the same item in
-`backgrounds`.
-
-Common `kind` values:
-
-- `link`: use a direct image or video URL.
-- `site`: capture and use a website URL.
-- `linkedin`: capture and use a LinkedIn page URL.
-
-Blank asset cells are skipped. URLs should use `https://` or `http://`; if no
-scheme is provided, BHuman prepends `https://`.
-
-Example:
-
-```json
-{
-  "campaign_id": "YOUR_CAMPAIGN_ID",
-  "variables": ["first_name", "company"],
-  "names": [
-    ["Alex", "ExampleCo"],
-    ["Jordan", "Sample Labs"]
-  ],
-  "assets": [
-    ["https://example.com/product", "https://example.com/alex-demo.mp4"],
-    ["https://example.com/pricing", "https://example.com/jordan-demo.mp4"]
-  ],
-  "backgrounds": [
-    {
-      "name": "product_page",
-      "start": 0,
-      "end": 3,
-      "kind": "site",
-      "config": {
-        "mode": "circle",
-        "position": "bottom-right",
-        "scale": 0.4
-      }
-    },
-    {
-      "name": "demo_video",
-      "start": 3,
-      "end": -1,
-      "kind": "link",
-      "config": {
-        "mode": "chroma",
-        "color": "00FF00"
-      }
-    }
-  ]
-}
-```
-
-### Background
-
-| Field | Type | Required | Notes |
-| :-- | :-- | :-- | :-- |
-| `name` | `String` | No | Reference name for debugging |
-| `start` | `Number` | Yes | Segment start time in seconds |
-| `end` | `Number` | Yes | Segment end time in seconds. Use `-1` for the rest of the video |
-| `kind` | `String` | Yes | Common values include `link`, `site`, and `linkedin` |
-| `config` | `BackgroundConfig` | Yes | Display settings |
-
-### BackgroundConfig
-
-| Field | Type | Notes |
-| :-- | :-- | :-- |
-| `mode` | `String` | Background display mode, such as `circle` or `chroma` |
-| `scale` | `Number` | Scale factor for the presenter overlay |
-| `position` | `String` | Overlay position, such as `center`, `bottom-right`, or `top-right` |
-| `audio` | `Boolean` | Whether to use audio from the background asset |
-| `brightness` | `Number` | Brightness for the non-covered background area |
-| `color` | `String` | Chroma key color in HEX when using `chroma` |
-| `similarity` | `Number` | Similarity level when using `chroma` |
-| `blend` | `Number` | Blend level when using `chroma` |
-
-## Completion callbacks and polling
-
-If `callback_url` is provided, BHuman can send completion details for generated
-videos. Store the generation ID so callbacks and polling responses can be
-reconciled.
-
-The campaign callback body uses `video_url` for the hosted/share page URL and
-`url` for the MP4 URL. Polling responses use `share_url` for the hosted/share
-page URL and `url` for the MP4 URL. For compatibility, receivers should accept
-both `video_url` and `share_url` as the hosted/share page field.
-
-Callback fields:
-
-| Field | Type | Notes |
-| :-- | :-- | :-- |
-| `id` | `String` | Generation ID |
-| `campaign_id` | `String` | Campaign ID for campaign renders |
-| `status` | `String` | `succeeded`, `failed`, or another render state |
-| `video_url` | `String` | Hosted video page or share destination when available |
-| `url` | `String` | Downloadable MP4 URL when available |
-| `thumbnail` | `String` | Generated thumbnail image URL when available |
-| `gif` | `String` | Generated GIF preview URL when available |
-| `whatsapp_video_url` | `String` | Optional WhatsApp-ready MP4 URL. Omitted while unavailable |
-| `campaign_result_id` | `Int` | Campaign result row identifier when provided |
-
-Successful callback example:
-
-```json
-{
-  "id": "c10ee155-6202-4cec-9a40-dde536e2ab4e",
-  "campaign_id": "YOUR_CAMPAIGN_ID",
-  "status": "succeeded",
-  "video_url": "https://videos.bhuman.ai/video/...",
-  "url": "https://assets.bhuman.ai/generated-video.mp4",
-  "thumbnail": "https://assets.bhuman.ai/thumb.jpg",
-  "gif": "https://assets.bhuman.ai/preview.gif",
-  "campaign_result_id": null
-}
-```
-
-Failed callback example:
-
-```json
-{
-  "id": "c10ee155-6202-4cec-9a40-dde536e2ab4e",
-  "campaign_id": "YOUR_CAMPAIGN_ID",
-  "status": "failed",
-  "video_url": "",
-  "url": "",
-  "thumbnail": "",
-  "gif": "",
-  "campaign_result_id": null
-}
-```
-
-Polling response fields:
-
-| Field | Type | Notes |
-| :-- | :-- | :-- |
-| `id` | `String` | Generation ID |
-| `status` | `String` | `preparing`, `queued`, `processing`, `succeeded`, `failed`, or another render state |
-| `share_url` | `String` | Hosted video page or share destination when available |
-| `url` | `String` | Downloadable MP4 URL |
-| `thumbnail` | `String` | Generated thumbnail image URL |
-| `gif` | `String` | Generated GIF preview URL |
-| `whatsapp_video_url` | `String` | Optional WhatsApp-ready MP4 URL after the derivative succeeds |
-| `message` | `String` | Failure or processing detail when available |
-| `execution_name` | `String` | Pipeline execution identifier when available |
-| `row_index` | `Int` | Recipient row index when available |
-
-Polling success example:
-
-```json
-{
-  "id": "c10ee155-6202-4cec-9a40-dde536e2ab4e",
-  "status": "succeeded",
-  "share_url": "https://videos.bhuman.ai/video/...",
-  "url": "https://assets.bhuman.ai/generated-video.mp4",
-  "thumbnail": "https://assets.bhuman.ai/thumb.jpg",
-  "gif": "https://assets.bhuman.ai/preview.gif"
-}
-```
-
-If you do not use callbacks, poll generated video endpoints:
-
-```http
-GET https://studio.bhuman.ai/api/ai_studio/generated_video_by_video_instance_id?video_instance_id={video_instance_id}&page=0&size=100
-GET https://studio.bhuman.ai/api/ai_studio/generated_video_by_campaign_id?campaign_id={campaign_id}&page=0&size=100
-GET https://studio.bhuman.ai/api/ai_studio/generated_video_by_id?id={generation_id}
-```
-
-## WhatsApp-ready video callbacks
-
-Enable WhatsApp video generation in the AI Studio campaign settings before
-calling the campaign generation endpoint. This is a saved campaign setting, not
-a field in the generation request.
-
-BHuman completes the main video first and creates the smaller WhatsApp-ready MP4
-in the background. The normal completion callback is sent immediately after the
-main render succeeds. It usually omits `whatsapp_video_url` because the
-derivative is not ready yet.
-
-After the derivative succeeds, the same callback URL receives a distinct event:
-
-```json
-{
-  "event": "whatsapp.ready",
-  "id": "c10ee155-6202-4cec-9a40-dde536e2ab4e",
-  "campaign_id": "YOUR_CAMPAIGN_ID",
-  "whatsapp_video_url": "https://assets.bhuman.ai/generated-video-whatsapp.mp4"
-}
-```
-
-Integration rules:
-
-- Continue the main-video workflow when `status = succeeded`. Do not require
-  `whatsapp_video_url` on that route.
-- Route `event = whatsapp.ready` separately and join it to the existing record
-  with `id`.
-- Store `whatsapp_video_url` from the readiness event or retrieve it later from
-  a generated-video polling endpoint.
-- Use event type plus `id` for idempotency. The main completion and readiness
-  events intentionally share the same generation ID.
-- If derivative generation fails, BHuman keeps the main video successful and
-  does not send `whatsapp.ready`.
-
-For Make and GoHighLevel, keep the existing main-completion route unchanged.
-Add a second route filtered by `event = whatsapp.ready`, find the generated
-video by `id`, and map `whatsapp_video_url` from that later event. Do not treat a
-missing readiness event as a failed main video.
-
-## Validation, errors, and support-safe messages
-
-API requests can fail before a render is started.
-
-Common validation responses:
-
-| HTTP status | Meaning |
-| :-- | :-- |
-| `400` | Valid JSON, but the payload is not usable for the campaign. For example, variable count does not match recipient values. |
-| `401` | Missing or invalid authorization. |
-| `422` | Request body or query shape could not be parsed. For example, a required UUID is malformed or a required field is missing. |
-
-Renders can also fail after an accepted response. In that case, the generation
-status becomes `failed` and a callback may be delivered with empty media fields.
-
-Do not show raw render failure messages to recipients or customers. In your
-product, show a support-safe message and log the generation ID for support:
-
-```text
-Render failed. Please contact BHuman support with code BH-RENDER-FAILED and generation ID {generation_id}.
-```
-
-## Scale and testing
-
-Generation is asynchronous. The API returns generation IDs first; media URLs are
-available later through callbacks or polling.
-
-Current behavior:
-
-- Use a small 2-3 row test before a large batch.
-- A single campaign request supports up to 2,000 recipient rows.
-- 50+ concurrent or near-concurrent generations should be tested against the
-  exact campaign/template before launch.
-- No public sandbox or fixed per-minute rate limit is documented. Use a real
-  account with a test campaign and non-production recipients for evaluation.
-- Render latency depends on template length, queue load, lip sync, background
-  processing, and other campaign settings. Do not treat one render as an SLA.
-
-## Compliance and privacy
-
-If a generated video needs an AI disclosure, put the disclosure line in the AI
-Studio template as fixed copy rather than as a recipient variable. API requests
-cannot remove fixed template copy during generation, so control who can edit the
-production template or campaign to keep the disclosure from being accidentally
-changed.
-
-Send only the recipient fields required for the video, such as first name,
-address, listing image URL, and CTA URL. Keep API keys and recipient data
-server-side. Do not place secrets or private recipient data in browser-side
-JavaScript.
-
-For retention, DPA, and account-specific privacy requirements, coordinate with
-BHuman support or your account team before launch.
-
-## Speakeasy imports
-
-Use Speakeasy to generate the presenter and voice, then import that project into
-AI Studio before marking variables or triggering campaign/API rendering.
-
-List importable projects:
-
-```http
-GET https://studio.bhuman.ai/api/ai_studio/speakeasy_projects
-```
-
-Import a project:
-
-```bash
-curl -X POST "https://studio.bhuman.ai/api/ai_studio/speakeasy_projects/import" \
-  -H "Authorization: Basic $BHUMAN_BASIC_AUTH" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "project_id": "SPEAKEASY_PROJECT_ID",
-    "workspace_id": "OPTIONAL_WORKSPACE_ID"
-  }'
-```
-
-## Saved webhooks
-
-Create a reusable webhook destination:
-
-```http
-POST https://studio.bhuman.ai/api/ai_studio/webhook
-```
-
-Request body:
-
-```json
-{
-  "name": "Production callback",
-  "webhook": "https://yourapp.com/bhuman/callback"
-}
-```
-
-List saved webhooks:
-
-```http
-GET https://studio.bhuman.ai/api/ai_studio/webhook
-```
-
-## Production checklist
-
-- Use HTTPS callback URLs that can accept repeated delivery attempts.
-- Store generation IDs so callbacks and polling responses can be reconciled.
-- When WhatsApp video generation is enabled, process main completion and
-  `whatsapp.ready` as separate events.
-- Keep variables stable after a campaign is wired into a production workflow.
-- Send row-specific assets in the same order as recipient rows.
-- Treat generated media URLs as outputs from an async render job, not as
-  immediate inline responses.
-- Check Swagger before launching custom integrations that rely on optional
-  fields.
-
-## Support
-
-For API support, contact help@bhuman.ai.
-
-Helpful links:
-
-- API docs: https://www.bhuman.ai/docs/api
-- Swagger UI: https://studio.bhuman.ai/swagger-ui/
+The envelope is `{code, result: generatedVideo}`. Wait for `result.status` to be
+`succeeded` and `result.url` to contain the MP4. Open it and verify video/audio
+playback. `share_url` is the hosted page; `thumbnail` and `gif` may be absent until
+ready. `failed` is terminal; preserve the ID and public failure message.
+
+**Access limitation:** the current individual-result route relies on possession
+of the generation ID rather than account authentication. Treat IDs and media URLs
+as private. Do not publish them in shared examples or logs.
+
+## Endpoint access boundaries
+
+| Endpoint | Integration behavior |
+| --- | --- |
+| `POST /api/ai_studio/pipeline/campaign` | Basic Authentication; generates from an owned campaign |
+| `POST /api/ai_studio/try_sample` | Basic Authentication; use `video_instance_id`, ordered variables and names |
+| `GET /api/ai_studio/generated_video_by_id?id=UUID` | Individual result by sensitive returned ID |
+| Template/campaign lists and bulk result lists | First-party bearer-token routes; do not assume Basic Authentication works |
+
+For example, `generated_video_by_campaign_id` requires a BHuman user bearer token,
+`campaign_id`, `page` and `size`. Prepare campaigns in the app; use an individual
+ID or callback for this Basic-auth integration.
+
+[Swagger](https://studio.bhuman.ai/swagger-ui/) and
+[live OpenAPI JSON](https://studio.bhuman.ai/swagger-ui/openapi.json) are public.
+The service schema version is `0.2.0`. It includes internal/admin and completion
+webhook ingress routes; inclusion is not a grant of customer access. Never call
+provider completion, admin, credit adjustment or raw pipeline operations.
+
+## Callbacks and retries
+
+Optional `callback_url` points to your own HTTPS receiver. Completion callbacks
+use `id`, `campaign_id`, `status`, `video_url` (hosted page), `url` (MP4),
+`thumbnail`, `gif` and `campaign_result_id`. Failure can leave media strings empty.
+Handle repeated deliveries once per ID/event and reconcile against stored IDs.
+No callback-signature or delivery retry SLA is promised by this reference.
+
+When the saved campaign enables WhatsApp output, the main completion and later
+`event=whatsapp.ready` callback are separate; the later event supplies
+`whatsapp_video_url`. This optional path needs account-specific qualification.
+
+REST generation has no documented idempotency key. **Disable automatic paid POST
+retries.** A lost response or timeout can mean accepted work. Check the campaign
+in the app before resubmitting; repeat status GETs instead when IDs are known.
+
+Missing/invalid credentials on a valid body return 401. Missing fields or malformed
+UUIDs can return 422 before authentication. Valid JSON with invalid variable mapping
+can return 400. Insufficient quota is a business failure; a render can fail after
+initial HTTP 200. Read HTTP status and the `code/result/error` payload, preserve
+references and review balance before a fresh start.
+
+## MCP scope
+
+The hosted MCP's deployed-source options are `quality: standard|hd` (480p/720p),
+`video_style: continuous`, and `aspect_ratio: match|16:9|9:16`. Standard/HD planning
+uses 1×/2× billable duration; confirm actual account pricing before approval.
+`prepare_video` stops before rendering; `plan_render → start_render → get_render`
+uses an explicit approved plan and idempotency key. Output is under
+`project.video_url`. Studio starts use `confirm_generation: true` and durable
+idempotency keys. These are source-reviewed contracts, not completed customer
+client tests.
+
+For support, use the public [contact page](https://www.bhuman.ai/contact).
+Share sanitized job references, never credentials or private recipient data.
+
+LeadR uses the hosted MCP connection and MCP key, with `leadr_*` tools for owned campaign drafts, plans, no-send previews, separately approved outreach and operation recovery. It is a restricted rollout; verify live tool discovery and account eligibility. Do not infer customer access from private source or confuse LeadR campaign IDs with Studio campaign IDs.
